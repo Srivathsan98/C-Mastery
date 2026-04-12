@@ -1,0 +1,54 @@
+# 📁 DATABASE: C MASTERY TRACKER
+
+## Properties
+
+| Property | Description |
+|----------|-------------|
+| Topic | Select |
+| Level | Beginner / Intermediate / Advanced |
+| Question | The question to master |
+| Status | Not Started / In Progress / Done |
+| Code Link | URL → GitHub |
+| Notes | Additional notes |
+| Revision Count | Number of revisions |
+| Confidence | 1–5 |
+
+---
+
+# 🧱 TEMPLATE PAGE
+
+## Writing
+
+### 🔥 C Mastery Tracker
+
+#### 📌 Topic: {{Topic}}
+
+- **🎯 Level:** {{Level}}
+
+#### 🧠 Question:
+
+{{Question}}
+
+#### 💻 My Answer:
+
+(Write explanation clearly — pretend teaching)
+
+#### 🔗 Code:
+
+(GitHub link)
+
+#### 🧾 Notes:
+
+- **Mistakes:**
+- **Edge cases:**
+- **Optimizations:**
+
+#### 🔁 Revision:
+
+- [ ] 1st pass
+- [ ] 2nd pass
+- [ ] 3rd pass
+
+#### ⚡ Confidence:
+
+(1–5)

@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C Programming — Notion Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #191919;
+    --surface: #202020;
+    --surface2: #282828;
+    --border: #2e2e2e;
+    --text: #e2e2e2;
+    --muted: #8b8b8b;
+    --dim: #555;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+    --tag-bg: #2d2d2d;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* TOP BANNER */
+  .top-banner {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border-bottom: 1px solid #0f3460;
+    padding: 32px 48px;
+  }
+
+  .breadcrumb {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+
+  .page-title {
+    font-size: 36px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .page-meta {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .meta-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .meta-chip strong { color: var(--text); }
+
+  /* PROGRESS OVERVIEW */
+  .overview {
+    padding: 24px 48px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .overview-stat {
+    text-align: center;
+  }
+
+  .overview-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--green);
+  }
+
+  .overview-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .progress-bar-wrap {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .progress-bar-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .progress-bar-track {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), #22d3ee);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.5s ease;
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 48px 80px;
+  }
+
+  /* SECTION */
+  .section {
+    margin-bottom: 48px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .pill-green { background: rgba(74,222,128,0.15); color: var(--green); }
+  .pill-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
+  .pill-red { background: rgba(248,113,113,0.15); color: var(--red); }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .section-qs {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* MODULE */
+  .module {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .module-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+
+  .module-header:hover { background: var(--surface2); }
+
+  .module-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    min-width: 28px;
+  }
+
+  .module-icon { font-size: 16px; }
+
+  .module-name {
+    font-weight: 600;
+    font-size: 14px;
+    flex: 1;
+  }
+
+  .module-progress {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-right: 8px;
+  }
+
+  .module-progress.done { color: var(--green); }
+
+  .module-status {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .status-notstarted { background: rgba(255,255,255,0.04); color: var(--dim); }
+  .status-inprogress { background: rgba(251,191,36,0.12); color: var(--yellow); }
+  .status-done { background: rgba(74,222,128,0.12); color: var(--green); }
+
+  .chevron {
+    color: var(--dim);
+    font-size: 12px;
+    transition: transform 0.2s;
+    margin-left: 4px;
+  }
+
+  .module.open .chevron { transform: rotate(90deg); }
+
+  .module-body {
+    display: none;
+    border-top: 1px solid var(--border);
+    padding: 0 18px 18px;
+  }
+
+  .module.open .module-body { display: block; }
+
+  /* QUESTIONS TABLE */
+  .q-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 14px;
+  }
+
+  .q-table th {
+    text-align: left;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+    padding: 6px 10px 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .q-table td {
+    padding: 9px 10px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    vertical-align: top;
+  }
+
+  .q-table tr:last-child td { border-bottom: none; }
+  .q-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .q-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    min-width: 36px;
+  }
+
+  .q-text {
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .q-type {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .type-concept { background: rgba(96,165,250,0.12); color: var(--blue); }
+  .type-code { background: rgba(167,139,250,0.12); color: var(--purple); }
+  .type-debug { background: rgba(251,191,36,0.12); color: var(--yellow); }
+  .type-theory { background: rgba(74,222,128,0.12); color: var(--green); }
+
+  .q-check {
+    width: 18px; height: 18px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .q-check:hover { border-color: var(--green); }
+  .q-check.checked { background: var(--green); border-color: var(--green); }
+  .q-check.checked::after { content: '✓'; font-size: 11px; color: #000; font-weight: 700; }
+
+  .q-row.checked .q-text { text-decoration: line-through; color: var(--dim); }
+
+  /* MINI MODULE BAR */
+  .module-bar-wrap {
+    margin: 10px 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .module-bar {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .module-bar-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  .module-bar-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    min-width: 30px;
+    text-align: right;
+  }
+
+  /* GITHUB NOTE */
+  .github-note {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .github-note-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+
+  .github-note-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .github-note-body {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .github-note code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--surface2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: var(--green);
+  }
+
+  @media (max-width: 700px) {
+    .main { padding: 20px 16px; }
+    .top-banner, .overview { padding: 20px 16px; }
+    .q-type { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BANNER -->
+<div class="top-banner">
+  <div class="breadcrumb">🏠 My Workspace / 💻 C Programming / 📋 Mastery Tracker</div>
+  <div class="page-title">C Programming — Complete Mastery Tracker</div>
+  <div class="page-meta">
+    <div class="meta-chip">📅 Created <strong id="created-date"></strong></div>
+    <div class="meta-chip">🔗 <strong>Link to GitHub</strong></div>
+    <div class="meta-chip">📊 <strong id="total-done">0</strong> / <strong id="total-qs">720</strong> questions done</div>
+    <div class="meta-chip">🎯 Goal: <strong>Systems Programmer</strong></div>
+  </div>
+</div>
+
+<!-- OVERVIEW -->
+<div class="overview">
+  <div class="overview-stat">
+    <div class="overview-num" id="pct-done">0%</div>
+    <div class="overview-label">Complete</div>
+  </div>
+  <div class="overview-stat">
+    <div class="overview-num" id="modules-done" style="color:var(--blue)">0</div>
+    <div class="overview-label">Modules Done</div>
+  </div>
+  <div class="overview-stat">
+    <div class="overview-num" id="streak" style="color:var(--yellow)">0</div>
+    <div class="overview-label">Today's Qs</div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-label">
+      <span>Overall Progress</span>
+      <span id="bar-pct">0%</span>
+    </div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="main-bar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- GITHUB NOTE -->
+  <div class="github-note">
+    <div class="github-note-icon">📌</div>
+    <div>
+      <div class="github-note-title">How to use this tracker with GitHub</div>
+      <div class="github-note-body">
+        For each module, create a folder in your repo: <code>01-setup-compilation/</code>, <code>02-data-types/</code> etc.
+        Write your answer to each question as a <code>.c</code> file. Name them <code>q01.c</code>, <code>q02.c</code>...
+        Commit and push. Paste your GitHub repo link here: <code>github.com/yourusername/c-mastery</code>
+        Check off each question below as you complete and push it. Progress auto-saves in your browser.
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ BEGINNER PHASE ============ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-pill pill-green">Phase 01</span>
+      <span class="section-title">Beginner — Foundations</span>
+      <span class="section-qs">10 modules · 15 questions each · 150 total</span>
+    </div>
+
+    <!-- MODULE 01 -->
+    <div class="module" id="m01">
+      <div class="module-header" onclick="toggleModule('m01')">
+        <span class="module-num">#01</span>
+        <span class="module-icon">⚙️</span>
+        <span class="module-name">Setup & Compilation</span>
+        <span class="module-progress" id="m01-prog">0/15</span>
+        <span class="module-status status-notstarted" id="m01-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m01-bar"></div></div><div class="module-bar-pct" id="m01-barpct">0%</div></div>
+        <table class="q-table">
+          <thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead>
+          <tbody id="m01-tbody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MODULE 02 -->
+    <div class="module" id="m02">
+      <div class="module-header" onclick="toggleModule('m02')">
+        <span class="module-num">#02</span>
+        <span class="module-icon">🔢</span>
+        <span class="module-name">Data Types & Variables</span>
+        <span class="module-progress" id="m02-prog">0/15</span>
+        <span class="module-status status-notstarted" id="m02-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m02-bar"></div></div><div class="module-bar-pct" id="m02-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m02-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- MODULE 03 -->
+    <div class="module" id="m03">
+      <div class="module-header" onclick="toggleModule('m03')">
+        <span class="module-num">#03</span>
+        <span class="module-icon">🧮</span>
+        <span class="module-name">Operators & Expressions</span>
+        <span class="module-progress" id="m03-prog">0/15</span>
+        <span class="module-status status-notstarted" id="m03-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m03-bar"></div></div><div class="module-bar-pct" id="m03-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m03-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- MODULE 04 -->
+    <div class="module" id="m04">
+      <div class="module-header" onclick="toggleModule('m04')">
+        <span class="module-num">#04</span>
+        <span class="module-icon">🔀</span>
+        <span class="module-name">Control Flow</span>
+        <span class="module-progress" id="m04-prog">0/15</span>
+        <span class="module-status status-notstarted" id="m04-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m04-bar"></div></div><div class="module-bar-pct" id="m04-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m04-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- MODULE 05 -->
+    <div class="module" id="m05">
+      <div class="module-header" onclick="toggleModule('m05')">
+        <span class="module-num">#05</span>
+        <span class="module-icon">📦</span>
+        <span class="module-name">Functions</span>
+        <span class="module-progress" id="m05-prog">0/15</span>
+        <span class="module-status status-notstarted" id="m05-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m05-bar"></div></div><div class="module-bar-pct" id="m05-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m05-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- MODULE 06 -->
+    <div class="module" id="m06">
+      <div class="module-header" onclick="toggleModule('m06')">
+        <span class="module-num">#06</span>
+        <span class="module-icon">📚</span>
+        <span class="module-name">Arrays</span>
+        <span class="module-progress" id="m06-prog">0/15</span>
+        <span class="module-status status-notstarted" id="m06-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m06-bar"></div></div><div class="module-bar-pct" id="m06-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m06-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- MODULE 07 -->
+    <div class="module" id="m07">
+      <div class="module-header" onclick="toggleModule('m07')">
+        <span class="module-num">#07</span>
+        <span class="module-icon">🔤</span>
+        <span class="module-name">Strings</span>
+        <span class="module-progress" id="m07-prog">0/15</span>
+        <span class="module-status status-notstarted" id="m07-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m07-bar"></div></div><div class="module-bar-pct" id="m07-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m07-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- MODULE 08 -->
+    <div class="module" id="m08">
+      <div class="module-header" onclick="toggleModule('m08')">
+        <span class="module-num">#08</span>
+        <span class="module-icon">📥</span>
+        <span class="module-name">Input / Output (stdio)</span>
+        <span class="module-progress" id="m08-prog">0/15</span>
+        <span class="module-status status-notstarted" id="m08-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m08-bar"></div></div><div class="module-bar-pct" id="m08-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m08-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- MODULE 09 -->
+    <div class="module" id="m09">
+      <div class="module-header" onclick="toggleModule('m09')">
+        <span class="module-num">#09</span>
+        <span class="module-icon">🏷️</span>
+        <span class="module-name">Scope & Storage Classes</span>
+        <span class="module-progress" id="m09-prog">0/15</span>
+        <span class="module-status status-notstarted" id="m09-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m09-bar"></div></div><div class="module-bar-pct" id="m09-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m09-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- MODULE 10 -->
+    <div class="module" id="m10">
+      <div class="module-header" onclick="toggleModule('m10')">
+        <span class="module-num">#10</span>
+        <span class="module-icon">#️⃣</span>
+        <span class="module-name">Preprocessor Directives</span>
+        <span class="module-progress" id="m10-prog">0/15</span>
+        <span class="module-status status-notstarted" id="m10-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m10-bar"></div></div><div class="module-bar-pct" id="m10-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m10-tbody"></tbody></table>
+      </div>
+    </div>
+
+  </div><!-- /beginner section -->
+
+  <!-- ============ INTERMEDIATE PHASE ============ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-pill pill-yellow">Phase 02</span>
+      <span class="section-title">Intermediate — Core Systems</span>
+      <span class="section-qs">10 modules · 20 questions each · 200 total</span>
+    </div>
+
+    <div class="module" id="m11">
+      <div class="module-header" onclick="toggleModule('m11')">
+        <span class="module-num">#11</span><span class="module-icon">👆</span>
+        <span class="module-name">Pointers — Core</span>
+        <span class="module-progress" id="m11-prog">0/20</span>
+        <span class="module-status status-notstarted" id="m11-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m11-bar"></div></div><div class="module-bar-pct" id="m11-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m11-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m12">
+      <div class="module-header" onclick="toggleModule('m12')">
+        <span class="module-num">#12</span><span class="module-icon">🏗️</span>
+        <span class="module-name">Structs & Unions</span>
+        <span class="module-progress" id="m12-prog">0/20</span>
+        <span class="module-status status-notstarted" id="m12-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m12-bar"></div></div><div class="module-bar-pct" id="m12-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m12-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m13">
+      <div class="module-header" onclick="toggleModule('m13')">
+        <span class="module-num">#13</span><span class="module-icon">💾</span>
+        <span class="module-name">Dynamic Memory</span>
+        <span class="module-progress" id="m13-prog">0/20</span>
+        <span class="module-status status-notstarted" id="m13-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m13-bar"></div></div><div class="module-bar-pct" id="m13-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m13-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m14">
+      <div class="module-header" onclick="toggleModule('m14')">
+        <span class="module-num">#14</span><span class="module-icon">🗂️</span>
+        <span class="module-name">File I/O</span>
+        <span class="module-progress" id="m14-prog">0/20</span>
+        <span class="module-status status-notstarted" id="m14-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m14-bar"></div></div><div class="module-bar-pct" id="m14-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m14-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m15">
+      <div class="module-header" onclick="toggleModule('m15')">
+        <span class="module-num">#15</span><span class="module-icon">🔗</span>
+        <span class="module-name">Linked Lists</span>
+        <span class="module-progress" id="m15-prog">0/20</span>
+        <span class="module-status status-notstarted" id="m15-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m15-bar"></div></div><div class="module-bar-pct" id="m15-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m15-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m16">
+      <div class="module-header" onclick="toggleModule('m16')">
+        <span class="module-num">#16</span><span class="module-icon">📊</span>
+        <span class="module-name">Stacks & Queues</span>
+        <span class="module-progress" id="m16-prog">0/20</span>
+        <span class="module-status status-notstarted" id="m16-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m16-bar"></div></div><div class="module-bar-pct" id="m16-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m16-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m17">
+      <div class="module-header" onclick="toggleModule('m17')">
+        <span class="module-num">#17</span><span class="module-icon">🌳</span>
+        <span class="module-name">Trees & Binary Trees</span>
+        <span class="module-progress" id="m17-prog">0/20</span>
+        <span class="module-status status-notstarted" id="m17-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m17-bar"></div></div><div class="module-bar-pct" id="m17-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m17-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m18">
+      <div class="module-header" onclick="toggleModule('m18')">
+        <span class="module-num">#18</span><span class="module-icon">🔠</span>
+        <span class="module-name">Enums & Typedefs</span>
+        <span class="module-progress" id="m18-prog">0/20</span>
+        <span class="module-status status-notstarted" id="m18-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m18-bar"></div></div><div class="module-bar-pct" id="m18-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m18-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m19">
+      <div class="module-header" onclick="toggleModule('m19')">
+        <span class="module-num">#19</span><span class="module-icon">🔣</span>
+        <span class="module-name">Bitwise Manipulation</span>
+        <span class="module-progress" id="m19-prog">0/20</span>
+        <span class="module-status status-notstarted" id="m19-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m19-bar"></div></div><div class="module-bar-pct" id="m19-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m19-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m20">
+      <div class="module-header" onclick="toggleModule('m20')">
+        <span class="module-num">#20</span><span class="module-icon">🔧</span>
+        <span class="module-name">Error Handling & errno</span>
+        <span class="module-progress" id="m20-prog">0/20</span>
+        <span class="module-status status-notstarted" id="m20-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m20-bar"></div></div><div class="module-bar-pct" id="m20-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m20-tbody"></tbody></table>
+      </div>
+    </div>
+
+  </div><!-- /intermediate section -->
+
+  <!-- ============ ADVANCED PHASE ============ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-pill pill-red">Phase 03</span>
+      <span class="section-title">Advanced — Systems Mastery</span>
+      <span class="section-qs">10 modules · 30 questions each · 300 total</span>
+    </div>
+
+    <div class="module" id="m21">
+      <div class="module-header" onclick="toggleModule('m21')">
+        <span class="module-num">#21</span><span class="module-icon">🧠</span>
+        <span class="module-name">Memory Model & Undefined Behavior</span>
+        <span class="module-progress" id="m21-prog">0/30</span>
+        <span class="module-status status-notstarted" id="m21-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m21-bar"></div></div><div class="module-bar-pct" id="m21-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m21-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m22">
+      <div class="module-header" onclick="toggleModule('m22')">
+        <span class="module-num">#22</span><span class="module-icon">⚡</span>
+        <span class="module-name">Advanced Pointers</span>
+        <span class="module-progress" id="m22-prog">0/30</span>
+        <span class="module-status status-notstarted" id="m22-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m22-bar"></div></div><div class="module-bar-pct" id="m22-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m22-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m23">
+      <div class="module-header" onclick="toggleModule('m23')">
+        <span class="module-num">#23</span><span class="module-icon">🔄</span>
+        <span class="module-name">Advanced Data Structures</span>
+        <span class="module-progress" id="m23-prog">0/30</span>
+        <span class="module-status status-notstarted" id="m23-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m23-bar"></div></div><div class="module-bar-pct" id="m23-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m23-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m24">
+      <div class="module-header" onclick="toggleModule('m24')">
+        <span class="module-num">#24</span><span class="module-icon">🏭</span>
+        <span class="module-name">Multi-file Projects & Makefiles</span>
+        <span class="module-progress" id="m24-prog">0/30</span>
+        <span class="module-status status-notstarted" id="m24-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m24-bar"></div></div><div class="module-bar-pct" id="m24-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m24-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m25">
+      <div class="module-header" onclick="toggleModule('m25')">
+        <span class="module-num">#25</span><span class="module-icon">🖥️</span>
+        <span class="module-name">Systems Programming & POSIX</span>
+        <span class="module-progress" id="m25-prog">0/30</span>
+        <span class="module-status status-notstarted" id="m25-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m25-bar"></div></div><div class="module-bar-pct" id="m25-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m25-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m26">
+      <div class="module-header" onclick="toggleModule('m26')">
+        <span class="module-num">#26</span><span class="module-icon">🧵</span>
+        <span class="module-name">Multithreading (pthreads)</span>
+        <span class="module-progress" id="m26-prog">0/30</span>
+        <span class="module-status status-notstarted" id="m26-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m26-bar"></div></div><div class="module-bar-pct" id="m26-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m26-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m27">
+      <div class="module-header" onclick="toggleModule('m27')">
+        <span class="module-num">#27</span><span class="module-icon">🌐</span>
+        <span class="module-name">Network Programming (Sockets)</span>
+        <span class="module-progress" id="m27-prog">0/30</span>
+        <span class="module-status status-notstarted" id="m27-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m27-bar"></div></div><div class="module-bar-pct" id="m27-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m27-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m28">
+      <div class="module-header" onclick="toggleModule('m28')">
+        <span class="module-num">#28</span><span class="module-icon">🛠️</span>
+        <span class="module-name">C Standard (C11/C17/C23)</span>
+        <span class="module-progress" id="m28-prog">0/30</span>
+        <span class="module-status status-notstarted" id="m28-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m28-bar"></div></div><div class="module-bar-pct" id="m28-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m28-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m29">
+      <div class="module-header" onclick="toggleModule('m29')">
+        <span class="module-num">#29</span><span class="module-icon">⚙️</span>
+        <span class="module-name">Performance & Optimization</span>
+        <span class="module-progress" id="m29-prog">0/30</span>
+        <span class="module-status status-notstarted" id="m29-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m29-bar"></div></div><div class="module-bar-pct" id="m29-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m29-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="module" id="m30">
+      <div class="module-header" onclick="toggleModule('m30')">
+        <span class="module-num">#30</span><span class="module-icon">🔍</span>
+        <span class="module-name">Debugging & Toolchain Mastery</span>
+        <span class="module-progress" id="m30-prog">0/30</span>
+        <span class="module-status status-notstarted" id="m30-status">Not Started</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="module-body">
+        <div class="module-bar-wrap"><div class="module-bar"><div class="module-bar-fill" id="m30-bar"></div></div><div class="module-bar-pct" id="m30-barpct">0%</div></div>
+        <table class="q-table"><thead><tr><th>✓</th><th>#</th><th>Question</th><th>Type</th></tr></thead><tbody id="m30-tbody"></tbody></table>
+      </div>
+    </div>
+
+  </div><!-- /advanced section -->
+
+</div><!-- /main -->
+
+<script>
+// ============================================================
+// QUESTION DATA — all 720+ questions
+// ============================================================
+const MODULES = {
+  m01: { total: 15, questions: [
+    {t:"What is the purpose of the compilation pipeline? List and explain each stage: preprocessing, compilation, assembly, and linking.", type:"theory"},
+    {t:"Write a hello world program in C and compile it using gcc with the -o flag to specify output name.", type:"code"},
+    {t:"What does `gcc -Wall -Wextra -o out main.c` do? Explain each flag.", type:"concept"},
+    {t:"What is the difference between a .c file, a .o (object) file, and an executable?", type:"theory"},
+    {t:"Use `gcc -E main.c` to view the preprocessor output. What gets expanded?", type:"code"},
+    {t:"What is a compiler warning vs a compiler error? Why should you treat all warnings as errors (-Werror)?", type:"theory"},
+    {t:"Write a minimal Makefile that compiles main.c into an executable called 'app'.", type:"code"},
+    {t:"What does `gcc -g` do and why is it needed for debugging with GDB?", type:"concept"},
+    {t:"What is the difference between static linking and dynamic linking?", type:"theory"},
+    {t:"Explain what happens when you run `gcc -c main.c`. What file is produced?", type:"concept"},
+    {t:"What does `-std=c99` or `-std=c11` tell the compiler?", type:"concept"},
+    {t:"Why does the compiler need function prototypes declared before use?", type:"theory"},
+    {t:"What is `clang` and how does it differ from `gcc`?", type:"theory"},
+    {t:"Explain what `cc` typically refers to on a Unix system.", type:"concept"},
+    {t:"Write a Makefile with `all`, `clean` targets and proper dependency tracking.", type:"code"},
+  ]},
+  m02: { total: 15, questions: [
+    {t:"What are the sizes (in bytes) of char, short, int, long, long long on a typical 64-bit system? Use sizeof to verify.", type:"code"},
+    {t:"What is the difference between signed and unsigned integers? What happens on overflow for each?", type:"theory"},
+    {t:"Write code that demonstrates integer overflow with a signed int. What is the C standard's position on this?", type:"code"},
+    {t:"What is the purpose of `limits.h`? Name 5 constants defined there.", type:"concept"},
+    {t:"Explain implicit type conversion (promotion). What happens in `int x = 5; float y = x / 2;`?", type:"debug"},
+    {t:"What is the difference between float, double, and long double? When would you choose each?", type:"theory"},
+    {t:"What is a `_Bool` type in C99? How does it differ from using an int as a boolean?", type:"concept"},
+    {t:"Write a program that prints the size of every fundamental C data type.", type:"code"},
+    {t:"What is `stdint.h` and why is it important for portable code? Give examples: int32_t, uint8_t.", type:"concept"},
+    {t:"Explain the difference between `char`, `signed char`, and `unsigned char`. Is `char` signed or unsigned by default?", type:"theory"},
+    {t:"What happens when you cast a large int to a char? Write a demonstration.", type:"code"},
+    {t:"What is `void` and when/where can it be used?", type:"concept"},
+    {t:"Explain the difference between a declaration and a definition of a variable.", type:"theory"},
+    {t:"What does the `const` qualifier mean? Write code showing `const int` vs `int const *`.", type:"code"},
+    {t:"What is `volatile` and in what situations is it necessary?", type:"theory"},
+  ]},
+  m03: { total: 15, questions: [
+    {t:"What is the result of `5 / 2` vs `5.0 / 2` in C? Why?", type:"debug"},
+    {t:"What is the modulo operator `%`? What is `(-7) % 3` in C?", type:"concept"},
+    {t:"List C operators from highest to lowest precedence. Write code that demonstrates a surprising precedence interaction.", type:"code"},
+    {t:"Explain short-circuit evaluation. What does `f() && g()` guarantee about execution order?", type:"theory"},
+    {t:"What is the ternary operator? Write a function that returns the absolute value using only the ternary operator.", type:"code"},
+    {t:"What does `x++` vs `++x` mean? Write code demonstrating the difference.", type:"code"},
+    {t:"Explain the comma operator. When would you use it and why is it dangerous?", type:"concept"},
+    {t:"What is the result of `2 << 3` and `16 >> 2`? Explain what left and right shifts do.", type:"concept"},
+    {t:"What is `~0`? Explain bitwise NOT and its typical use case.", type:"concept"},
+    {t:"Explain the compound assignment operators: +=, -=, *=, /=, %=, &=, |=, ^=, <<=, >>=.", type:"concept"},
+    {t:"What is the sizeof operator? Is it a function? What does `sizeof(int *)` return?", type:"theory"},
+    {t:"Write code to swap two integers using XOR without a temporary variable.", type:"code"},
+    {t:"What is integer promotion? What happens when you mix char and int in an expression?", type:"theory"},
+    {t:"What is the result of `1 == 1 == 1` in C? Explain.", type:"debug"},
+    {t:"Explain the difference between `&` (bitwise AND) and `&&` (logical AND). Give a case where confusing them leads to bugs.", type:"debug"},
+  ]},
+  m04: { total: 15, questions: [
+    {t:"Write a program using if/else if/else to print the grade letter given a numeric score (A/B/C/D/F).", type:"code"},
+    {t:"What is a dangling else? Write code that demonstrates the ambiguity.", type:"debug"},
+    {t:"Write a switch statement for a simple calculator (+, -, *, /). Handle the default case.", type:"code"},
+    {t:"What are the rules for fall-through in switch statements? Write an example that intentionally uses fall-through.", type:"code"},
+    {t:"What is the difference between while and do-while? Give a case where do-while is the right choice.", type:"theory"},
+    {t:"Write a for loop to compute the factorial of n using only a for loop (no recursion).", type:"code"},
+    {t:"What does `break` do inside a nested loop? Write code that breaks out of the outer loop from inside the inner loop.", type:"code"},
+    {t:"What does `continue` do? Write a loop that prints all odd numbers from 1 to 20 using continue.", type:"code"},
+    {t:"Explain goto in C. Write an example of error-handling using goto (the only widely-accepted goto pattern).", type:"code"},
+    {t:"What is an infinite loop? Write 3 different ways to write an infinite loop in C.", type:"code"},
+    {t:"What is the off-by-one error? Show an example with an array loop and fix it.", type:"debug"},
+    {t:"Explain loop unrolling conceptually. Why might a compiler do this automatically?", type:"theory"},
+    {t:"Write a program that uses nested for loops to print a multiplication table (10x10).", type:"code"},
+    {t:"Can you put declarations inside an if block? Explain the scope rules.", type:"concept"},
+    {t:"Write a program that reads integers until 0 is entered, then prints the sum. Handle EOF correctly.", type:"code"},
+  ]},
+  m05: { total: 15, questions: [
+    {t:"Explain the difference between a function declaration (prototype) and a function definition.", type:"theory"},
+    {t:"What does `void` mean as a return type vs `void` as a parameter type (e.g., `int f(void)`)?", type:"concept"},
+    {t:"Write a recursive function to compute the nth Fibonacci number. What is its time complexity?", type:"code"},
+    {t:"What is the call stack? Draw (describe) what happens to the stack when you call a recursive function 5 levels deep.", type:"theory"},
+    {t:"What is stack overflow? Write code that causes one and explain why it happens.", type:"code"},
+    {t:"Explain pass-by-value in C. Write a swap function that fails (because C is pass-by-value) and one that works.", type:"code"},
+    {t:"What is a function pointer? Declare a pointer to a function that takes two ints and returns an int.", type:"code"},
+    {t:"Write a dispatch table using function pointers for a calculator (+, -, *, /).", type:"code"},
+    {t:"What is the `inline` keyword? When should you use it vs a macro?", type:"theory"},
+    {t:"Explain variadic functions. Write a simplified version of a sum function using `<stdarg.h>`.", type:"code"},
+    {t:"What is tail recursion? Does C guarantee tail call optimization?", type:"theory"},
+    {t:"What is the difference between `static` in a local function vs a global function?", type:"concept"},
+    {t:"Write a function that returns a local array. Why is this wrong? How do you fix it?", type:"debug"},
+    {t:"What is a recursive descent? Write a recursive function to evaluate a simple expression like `3 + (2 * 4)`.", type:"code"},
+    {t:"What is the calling convention? What does cdecl mean and who cleans up the stack?", type:"theory"},
+  ]},
+  m06: { total: 15, questions: [
+    {t:"Declare and initialize a 1D array of 10 ints with values 0–9. Print them using a loop.", type:"code"},
+    {t:"What is array decay? What happens when you pass an array to a function?", type:"theory"},
+    {t:"Write a function that takes an array and its size, and returns the maximum element.", type:"code"},
+    {t:"Declare a 2D array (3x4) of ints. Initialize it and print it in matrix form.", type:"code"},
+    {t:"What is row-major order? Why does it matter for cache performance in nested loops?", type:"theory"},
+    {t:"What happens if you access array[10] when the array has 10 elements? Explain undefined behavior here.", type:"debug"},
+    {t:"Write a function that reverses an array in-place.", type:"code"},
+    {t:"What is a Variable Length Array (VLA)? Write an example. What are the risks?", type:"code"},
+    {t:"How do you pass a 2D array to a function in C? Show the correct syntax.", type:"code"},
+    {t:"Explain the relationship between arrays and pointers. Is `arr[i]` equivalent to `*(arr+i)`?", type:"theory"},
+    {t:"Write bubble sort on an integer array.", type:"code"},
+    {t:"Write a function that flattens a 2D array into a 1D array.", type:"code"},
+    {t:"What is the difference between `int arr[5] = {0}` and `int arr[5] = {1}`?", type:"concept"},
+    {t:"Write binary search on a sorted integer array.", type:"code"},
+    {t:"What is a designated initializer for arrays? Write an example using C99 syntax.", type:"code"},
+  ]},
+  m07: { total: 15, questions: [
+    {t:"What is a null-terminated string? Why is the null terminator `\\0` necessary?", type:"theory"},
+    {t:"What is the difference between `char str[] = \"hello\"` and `char *str = \"hello\"`? Can you modify each?", type:"debug"},
+    {t:"Write a function that computes string length without using strlen.", type:"code"},
+    {t:"Write your own strcpy. What buffer overflow vulnerabilities does strcpy have?", type:"code"},
+    {t:"What is strncpy? Why is it not a safe replacement for strcpy?", type:"theory"},
+    {t:"Write a function that reverses a string in place.", type:"code"},
+    {t:"Use strtok to split a comma-separated string into tokens. What are strtok's limitations?", type:"code"},
+    {t:"Explain the difference between strcmp and strncmp. Write a case-insensitive string comparison.", type:"code"},
+    {t:"What does strstr do? Write your own implementation.", type:"code"},
+    {t:"Write a function that checks if a string is a palindrome.", type:"code"},
+    {t:"Explain format string vulnerabilities. Why is `printf(user_input)` dangerous?", type:"debug"},
+    {t:"Write a function that converts a string to an integer (atoi-like) without using stdlib.", type:"code"},
+    {t:"What is `snprintf`? Why is it safer than `sprintf`?", type:"concept"},
+    {t:"Write a function that counts the occurrences of each character in a string using an array.", type:"code"},
+    {t:"What is `memmove` vs `memcpy`? When must you use memmove?", type:"theory"},
+  ]},
+  m08: { total: 15, questions: [
+    {t:"What are the format specifiers for int, float, char, string, hex, octal in printf?", type:"concept"},
+    {t:"What is the difference between `printf` and `fprintf`? Print to stderr using fprintf.", type:"code"},
+    {t:"What is the danger of reading strings with scanf? How do you limit input length?", type:"debug"},
+    {t:"Explain `%d` vs `%i` in scanf — are they the same?", type:"concept"},
+    {t:"Write a program that reads a line of input using fgets and strips the trailing newline.", type:"code"},
+    {t:"What is `getchar()` and `putchar()`? Write a program to copy stdin to stdout character by character.", type:"code"},
+    {t:"What does fflush(stdout) do? When is it necessary?", type:"concept"},
+    {t:"Explain buffered vs unbuffered I/O. When does printf actually write to the terminal?", type:"theory"},
+    {t:"Write a program that reads integers from stdin until EOF and prints their sum.", type:"code"},
+    {t:"What is the return value of scanf? How do you check if it succeeded?", type:"concept"},
+    {t:"What is `sscanf`? Parse a date string like `\"2024-03-15\"` into year, month, day.", type:"code"},
+    {t:"Explain the format specifier `%*d` in scanf. What does the `*` mean?", type:"concept"},
+    {t:"Write code to print a float with exactly 4 decimal places and minimum field width of 10.", type:"code"},
+    {t:"What is `setvbuf`? Explain the 3 buffering modes: fully buffered, line buffered, unbuffered.", type:"theory"},
+    {t:"What is the difference between `puts` and `printf(\"%s\\n\", s)`?", type:"concept"},
+  ]},
+  m09: { total: 15, questions: [
+    {t:"What are the four storage classes in C: auto, register, static, extern? Explain each.", type:"theory"},
+    {t:"What is the default storage class for a local variable?", type:"concept"},
+    {t:"What does `static` mean for a local variable? Write code showing its persistence across calls.", type:"code"},
+    {t:"What does `static` mean for a global function or variable? How does it affect linkage?", type:"concept"},
+    {t:"What is `extern`? Write a multi-file example using a shared global variable.", type:"code"},
+    {t:"What is block scope, file scope, function scope, and prototype scope?", type:"theory"},
+    {t:"What is variable shadowing? Write an example and explain the pitfall.", type:"debug"},
+    {t:"What is the lifetime of a local variable vs a static variable vs a dynamically allocated variable?", type:"theory"},
+    {t:"What is `register` storage class? Does a modern compiler respect it?", type:"concept"},
+    {t:"Can two files define the same global variable without extern? What happens at link time?", type:"debug"},
+    {t:"Explain the one definition rule (ODR) in C.", type:"theory"},
+    {t:"What is an internal linkage vs external linkage?", type:"theory"},
+    {t:"Write a function that uses a static variable as a counter and returns how many times it's been called.", type:"code"},
+    {t:"What is the difference between initializing a global variable to 0 explicitly vs leaving it uninitialized? Where does it live in memory?", type:"theory"},
+    {t:"What is the danger of a global variable? Give an example of a subtle bug it can introduce.", type:"debug"},
+  ]},
+  m10: { total: 15, questions: [
+    {t:"What is a preprocessor macro? Write a macro for MAX(a, b). What are the pitfalls?", type:"code"},
+    {t:"Write a safe MAX macro using the GNU statement expression extension. Why is it safer?", type:"code"},
+    {t:"What is an include guard? Write a header file with a proper include guard.", type:"code"},
+    {t:"What is `#pragma once`? How does it compare to include guards?", type:"concept"},
+    {t:"What does `#undef` do? When would you use it?", type:"concept"},
+    {t:"Write a macro that computes the number of elements in a static array: `ARRAY_SIZE(arr)`.", type:"code"},
+    {t:"What is conditional compilation? Write code that compiles differently on Linux vs Windows using `#ifdef`.", type:"code"},
+    {t:"What is `__FILE__`, `__LINE__`, `__DATE__`, `__func__`? Write a logging macro that uses them.", type:"code"},
+    {t:"What is stringification in macros? Explain `#x` in a macro and write an example.", type:"code"},
+    {t:"What is token pasting `##`? Write a macro that uses it.", type:"code"},
+    {t:"What is the difference between a macro and an inline function? When should each be preferred?", type:"theory"},
+    {t:"What is `#error`? Write a header that uses it to enforce a minimum C standard.", type:"code"},
+    {t:"What does `-DDEBUG` on the gcc command line do? Write code that uses a DEBUG macro.", type:"code"},
+    {t:"Explain macro pitfalls with side effects: why is `MAX(x++, y++)` dangerous?", type:"debug"},
+    {t:"What is `_Pragma`? How does it differ from `#pragma`?", type:"concept"},
+  ]},
+  m11: { total: 20, questions: [
+    {t:"Explain the & address-of operator and the * dereference operator. Write a simple swap using pointers.", type:"code"},
+    {t:"What is pointer arithmetic? If `int *p = arr`, what is `p + 1`?", type:"concept"},
+    {t:"What is the difference between `int *const p` and `const int *p` and `const int *const p`?", type:"theory"},
+    {t:"What is a NULL pointer? What happens when you dereference one?", type:"debug"},
+    {t:"What is a void pointer? Write a generic swap function using `void *`.", type:"code"},
+    {t:"What is a pointer to a pointer (`int **`)? Write a function that modifies a pointer passed to it.", type:"code"},
+    {t:"What is the difference between `char *argv[]` and `char **argv`?", type:"concept"},
+    {t:"Explain pointer comparison. What does `p1 < p2` mean?", type:"concept"},
+    {t:"What is a dangling pointer? Write code that creates one, explain why it is undefined behavior.", type:"debug"},
+    {t:"What is a wild pointer? How do you avoid them?", type:"debug"},
+    {t:"What is pointer aliasing? Explain why it matters for compiler optimizations.", type:"theory"},
+    {t:"Write a function that uses a pointer to return multiple values (output parameters).", type:"code"},
+    {t:"Declare a function pointer that points to a function taking int and returning int. Assign and call it.", type:"code"},
+    {t:"Write a higher-order function apply() that takes an int, and a function pointer, and applies the function.", type:"code"},
+    {t:"What is `ptrdiff_t` and why should you use it for pointer differences?", type:"concept"},
+    {t:"Explain the `restrict` keyword. When does it help the compiler?", type:"theory"},
+    {t:"What does `*(int *)0 = 1` do? Why is this a common way to intentionally crash?", type:"debug"},
+    {t:"Write a function that takes `char **` and sets a string to a new value. Show the caller.", type:"code"},
+    {t:"What is the difference between `int (*fp)(int)` and `int *fp(int)`? Parse each declarator.", type:"concept"},
+    {t:"Write a qsort call to sort an array of structs by a specific field using a comparator.", type:"code"},
+  ]},
+  m12: { total: 20, questions: [
+    {t:"Declare a struct for a 2D point (x, y). Create an instance, set fields, print them.", type:"code"},
+    {t:"What is the `->`  operator? When do you use `.` vs `->`?", type:"concept"},
+    {t:"What is struct padding? Write a struct and explain why sizeof may be larger than the sum of member sizes.", type:"theory"},
+    {t:"How do you pack a struct to eliminate padding? Use `__attribute__((packed))` or `#pragma pack`.", type:"code"},
+    {t:"What is a nested struct? Write a struct for a Rectangle using two Point structs.", type:"code"},
+    {t:"What is a self-referential struct? Write a struct for a linked list node.", type:"code"},
+    {t:"What is a union? Write a union that stores either an int or a float, and explain memory sharing.", type:"code"},
+    {t:"What is a tagged union? Write a type-safe union using an enum tag.", type:"code"},
+    {t:"What is a bit field? Write a struct that packs flags into a single byte using bit fields.", type:"code"},
+    {t:"How do you initialize a struct with a designated initializer (C99)?", type:"code"},
+    {t:"Write a typedef for a struct so it can be used without the `struct` keyword.", type:"code"},
+    {t:"What is an anonymous struct? Where are they useful?", type:"concept"},
+    {t:"Can you compare two structs with `==`? Why or why not? How do you compare them?", type:"debug"},
+    {t:"Write a function that deep-copies a struct containing a pointer member.", type:"code"},
+    {t:"What is a flexible array member (C99)? Write a struct that uses one.", type:"code"},
+    {t:"Write a struct-based implementation of a stack (using arrays inside the struct).", type:"code"},
+    {t:"Explain struct alignment requirements. What is `alignof(struct X)` typically?", type:"theory"},
+    {t:"Can you return a struct from a function by value? What are the performance implications?", type:"theory"},
+    {t:"Write a struct for a binary tree node with left/right children and an int value.", type:"code"},
+    {t:"What is the common initial sequence rule for unions? When is it safe to access a union member that wasn't last written?", type:"theory"},
+  ]},
+  m13: { total: 20, questions: [
+    {t:"What does malloc return? What does it do if allocation fails? Always check the return value.", type:"code"},
+    {t:"What is the difference between malloc, calloc, and realloc?", type:"concept"},
+    {t:"Write code that allocates an array of 10 ints dynamically, fills it, and frees it.", type:"code"},
+    {t:"What is a memory leak? Write code with a leak and explain how to detect it with valgrind.", type:"debug"},
+    {t:"What is a dangling pointer after free? Write an example and show how to guard against it.", type:"debug"},
+    {t:"What is double free? What does it cause and how do you prevent it?", type:"debug"},
+    {t:"Write a function that creates a dynamically allocated copy of a string (like strdup).", type:"code"},
+    {t:"What is realloc? Write code that grows an array dynamically as elements are added.", type:"code"},
+    {t:"What happens if you call realloc with size 0? Is it implementation-defined?", type:"theory"},
+    {t:"Explain the difference between heap and stack memory. When should you use each?", type:"theory"},
+    {t:"What is memory fragmentation? Explain internal vs external fragmentation.", type:"theory"},
+    {t:"Write a simple memory pool allocator in C.", type:"code"},
+    {t:"What is `alloca`? Why is it dangerous?", type:"concept"},
+    {t:"Run valgrind --leak-check=full on a program. Describe what each category of output means.", type:"concept"},
+    {t:"What is AddressSanitizer (ASan)? How do you compile with it and what does it detect?", type:"concept"},
+    {t:"Write a dynamic array (vector) in C with push, pop, and automatic resizing.", type:"code"},
+    {t:"What is `mmap` for memory allocation? How does it differ from malloc?", type:"theory"},
+    {t:"Explain the concept of arena/region allocation. Implement a simple arena allocator.", type:"code"},
+    {t:"What does `free(NULL)` do? Is it safe?", type:"concept"},
+    {t:"What is use-after-free? Write a code example and explain the vulnerability implications.", type:"debug"},
+  ]},
+  m14: { total: 20, questions: [
+    {t:"Open a file for reading, read its contents line by line, print them, close the file.", type:"code"},
+    {t:"Explain the different modes for fopen: r, w, a, r+, w+, a+, rb, wb.", type:"concept"},
+    {t:"What is the difference between text mode and binary mode file I/O?", type:"theory"},
+    {t:"Write a program that copies a file byte by byte using fread and fwrite.", type:"code"},
+    {t:"What is fseek and ftell? Write code to get the size of a file without reading it.", type:"code"},
+    {t:"What is feof? Why is `while(!feof(fp))` considered bad practice?", type:"debug"},
+    {t:"Write a program that reads a CSV file and parses each line into fields.", type:"code"},
+    {t:"What does fflush do? When must you call it?", type:"concept"},
+    {t:"Write a function that reads an entire file into a dynamically allocated string.", type:"code"},
+    {t:"What is the difference between fgets and fread?", type:"concept"},
+    {t:"Write a program that counts word frequencies in a text file.", type:"code"},
+    {t:"What is a file descriptor vs a FILE*? How do you get one from the other (fileno, fdopen)?", type:"theory"},
+    {t:"Write a program that appends a timestamp to a log file on each run.", type:"code"},
+    {t:"What is ferror? How do you distinguish between EOF and an error?", type:"concept"},
+    {t:"Write a binary file serializer/deserializer for a struct.", type:"code"},
+    {t:"What is tmpfile()? When would you use it?", type:"concept"},
+    {t:"Explain stdio buffering: fully buffered, line buffered, unbuffered. How do you change it?", type:"theory"},
+    {t:"Write a program that uses fseek to read the last 100 bytes of a file.", type:"code"},
+    {t:"What is the POSIX open() syscall vs fopen()? What are the advantages of each?", type:"theory"},
+    {t:"Write a program that reads a binary file containing an array of structs and prints each record.", type:"code"},
+  ]},
+  m15: { total: 20, questions: [
+    {t:"Implement a singly linked list with: insert at head, insert at tail, delete by value, print.", type:"code"},
+    {t:"Implement a doubly linked list. How does deletion differ from a singly linked list?", type:"code"},
+    {t:"Write a function to find the length of a linked list.", type:"code"},
+    {t:"Write a function to reverse a singly linked list in-place (iteratively and recursively).", type:"code"},
+    {t:"Detect if a linked list has a cycle (Floyd's cycle detection algorithm).", type:"code"},
+    {t:"Find the middle of a linked list in one pass using the slow/fast pointer technique.", type:"code"},
+    {t:"Merge two sorted linked lists into one sorted list.", type:"code"},
+    {t:"Write merge sort for a linked list.", type:"code"},
+    {t:"Remove the nth node from the end of a linked list in one pass.", type:"code"},
+    {t:"Check if a linked list is a palindrome.", type:"code"},
+    {t:"Implement a circular linked list and traverse it without infinite-looping.", type:"code"},
+    {t:"Write a function to remove all duplicate values from a sorted linked list.", type:"code"},
+    {t:"What is a sentinel/dummy node? Rewrite your insert/delete using a dummy head.", type:"code"},
+    {t:"Implement a linked list that stores strings (dynamically allocated).", type:"code"},
+    {t:"What is the time complexity of insert/delete/search for a linked list vs array?", type:"theory"},
+    {t:"Write a function to split a linked list into two halves.", type:"code"},
+    {t:"Implement a generic linked list using void pointers.", type:"code"},
+    {t:"What is XOR linked list? Implement it (as an exercise in pointer manipulation).", type:"code"},
+    {t:"Flatten a multi-level doubly linked list (each node may have a child list).", type:"code"},
+    {t:"Write an LRU cache using a linked list and hash map.", type:"code"},
+  ]},
+  m16: { total: 20, questions: [
+    {t:"Implement a stack using a fixed-size array with push, pop, peek, isEmpty, isFull.", type:"code"},
+    {t:"Implement a stack using a linked list (no fixed size limit).", type:"code"},
+    {t:"Use a stack to check if a string of brackets `()[]{}` is balanced.", type:"code"},
+    {t:"Use a stack to evaluate a postfix (RPN) expression.", type:"code"},
+    {t:"Use a stack to convert an infix expression to postfix (Shunting Yard algorithm).", type:"code"},
+    {t:"Implement a queue using a fixed-size circular buffer.", type:"code"},
+    {t:"Implement a queue using two stacks.", type:"code"},
+    {t:"Implement a queue using a linked list.", type:"code"},
+    {t:"Implement a deque (double-ended queue) using a doubly linked list.", type:"code"},
+    {t:"What is a priority queue? Implement one using a min-heap array.", type:"code"},
+    {t:"Write a BFS graph traversal using a queue.", type:"code"},
+    {t:"What is a monotonic stack? Use it to find the next greater element for each array element.", type:"code"},
+    {t:"Implement a min-stack that supports push, pop, and getMin in O(1).", type:"code"},
+    {t:"Use a deque to solve the sliding window maximum problem.", type:"code"},
+    {t:"What is the difference between a stack overflow and a queue being full?", type:"theory"},
+    {t:"Implement a thread-safe queue (use a mutex — even without pthreads, show the design).", type:"code"},
+    {t:"Write a function that sorts a stack using only push/pop operations (no auxiliary array).", type:"code"},
+    {t:"Implement undo/redo using two stacks.", type:"code"},
+    {t:"Use a queue to implement a job scheduler that processes tasks in FIFO order.", type:"code"},
+    {t:"Explain when you would choose a stack vs queue vs deque for a given problem.", type:"theory"},
+  ]},
+  m17: { total: 20, questions: [
+    {t:"Implement a Binary Search Tree (BST) with insert and inorder traversal.", type:"code"},
+    {t:"Implement search in a BST. What is the average and worst-case time complexity?", type:"code"},
+    {t:"Implement deletion in a BST. Handle all three cases: leaf, one child, two children.", type:"code"},
+    {t:"Write inorder, preorder, and postorder traversals both recursively and iteratively.", type:"code"},
+    {t:"Write level-order (BFS) traversal of a binary tree.", type:"code"},
+    {t:"Write a function to compute the height of a binary tree.", type:"code"},
+    {t:"Write a function to count the number of nodes in a binary tree.", type:"code"},
+    {t:"Check if a binary tree is a valid BST.", type:"code"},
+    {t:"Find the lowest common ancestor (LCA) of two nodes in a BST.", type:"code"},
+    {t:"Serialize and deserialize a binary tree to/from a string.", type:"code"},
+    {t:"What is an AVL tree? Implement AVL insert with rotations (left, right, left-right, right-left).", type:"code"},
+    {t:"What is the balance factor in an AVL tree? Write a function to check if a tree is balanced.", type:"code"},
+    {t:"Find the kth smallest element in a BST.", type:"code"},
+    {t:"Convert a sorted array to a height-balanced BST.", type:"code"},
+    {t:"Find the maximum path sum in a binary tree.", type:"code"},
+    {t:"What is a complete binary tree vs a full binary tree vs a perfect binary tree?", type:"theory"},
+    {t:"Implement a heap as an array and write heapify, insert, extract-min.", type:"code"},
+    {t:"What is a trie? Implement insert and search for a trie of lowercase words.", type:"code"},
+    {t:"What is a B-tree (conceptually)? Why is it used in databases?", type:"theory"},
+    {t:"Implement a segment tree for range sum queries and point updates.", type:"code"},
+  ]},
+  m18: { total: 20, questions: [
+    {t:"Declare an enum for days of the week. Print each day's name using a switch statement.", type:"code"},
+    {t:"What is the default starting value of an enum? How do you change it?", type:"concept"},
+    {t:"What is the underlying type of an enum in C? Is it always int?", type:"theory"},
+    {t:"Write an enum for error codes. Use it as a function return type.", type:"code"},
+    {t:"What is typedef? Create a typedef for an unsigned char called `u8`.", type:"code"},
+    {t:"Create a typedef for a struct so you don't have to write `struct` every time.", type:"code"},
+    {t:"What is the difference between `typedef int *IntPtr` and `#define IntPtr int *` when used with multiple declarations?", type:"debug"},
+    {t:"Write a typedef for a function pointer type.", type:"code"},
+    {t:"What is an opaque type? Show how to use a forward-declared struct pointer to hide implementation details.", type:"code"},
+    {t:"Explain how to implement an opaque type in a library: put the struct definition in the .c file only.", type:"code"},
+    {t:"What is a scoped enum vs a C-style enum? (Explain the difference from C++ if you know it, and C's approach.)", type:"theory"},
+    {t:"Can enum values be negative? Can they be non-consecutive? Write examples.", type:"code"},
+    {t:"What happens if you assign an integer value to an enum variable that's not one of the enum's values?", type:"debug"},
+    {t:"Use a typedef to create an alias for a complex function pointer type and use it.", type:"code"},
+    {t:"What is `typedef void (*signal_handler)(int)`? Write code using it.", type:"code"},
+    {t:"Explain how typedef improves readability in complex pointer declarations.", type:"theory"},
+    {t:"What is `_Bool` and how does it relate to `stdbool.h`? Can you typedef it?", type:"concept"},
+    {t:"Write a state machine using an enum for states and a function pointer array for transitions.", type:"code"},
+    {t:"Can you have an enum inside a struct? What is the behavior?", type:"concept"},
+    {t:"What is a bit-flag enum? Write one for file permissions (READ=1, WRITE=2, EXEC=4) and show how to combine flags.", type:"code"},
+  ]},
+  m19: { total: 20, questions: [
+    {t:"Write a function that sets bit N of an integer, clears bit N, and toggles bit N.", type:"code"},
+    {t:"Check if bit N is set in an integer.", type:"code"},
+    {t:"What is the result of `0xFF & 0x0F`? Explain what masking does.", type:"concept"},
+    {t:"Write a function that counts the number of set bits in an integer (popcount) without using __builtin_popcount.", type:"code"},
+    {t:"What is `x & (x-1)`? Explain and use it to check if a number is a power of 2.", type:"code"},
+    {t:"What is `x & (-x)`? What does it return?", type:"concept"},
+    {t:"Write a function that reverses the bits of a 32-bit integer.", type:"code"},
+    {t:"Explain left shift and right shift for signed vs unsigned integers. What is arithmetic shift?", type:"theory"},
+    {t:"What is two's complement? How does it represent negative numbers?", type:"theory"},
+    {t:"Write a function that swaps two integers using XOR (no temp variable).", type:"code"},
+    {t:"Use bitmasks to implement a simple set (of up to 64 elements) with add, remove, contains operations.", type:"code"},
+    {t:"What is a bitmask? Use one to pack multiple boolean flags into a single byte.", type:"code"},
+    {t:"Find the only non-repeating element in an array where every other element appears twice (XOR trick).", type:"code"},
+    {t:"What is endianness? How does it affect bitwise operations on multi-byte values?", type:"theory"},
+    {t:"Write a function to rotate bits of an integer left by N positions.", type:"code"},
+    {t:"Implement a compact bitmap structure that tracks which integers (0-999) are present.", type:"code"},
+    {t:"What is a Gray code? Write a function to convert binary to Gray code and back.", type:"code"},
+    {t:"What does `!!x` do in C? Explain the double-negation idiom.", type:"concept"},
+    {t:"Write a branchless absolute value using bit manipulation.", type:"code"},
+    {t:"Implement fast integer log2 using bit operations.", type:"code"},
+  ]},
+  m20: { total: 20, questions: [
+    {t:"What is `errno`? Where is it defined and how do you use it after a failed syscall?", type:"concept"},
+    {t:"What does `perror` do? Write an example that handles a failed fopen using perror.", type:"code"},
+    {t:"What is `strerror`? How does it differ from perror?", type:"concept"},
+    {t:"Write a function that wraps malloc and aborts with a meaningful error message on failure.", type:"code"},
+    {t:"What is `assert`? When should you use it? What does `-DNDEBUG` do to asserts?", type:"concept"},
+    {t:"What is the difference between assertions and error handling?", type:"theory"},
+    {t:"Design an error code enum and a function that returns errors as return values (no global state).", type:"code"},
+    {t:"What is `setjmp`/`longjmp`? Write a simple example of non-local exit.", type:"code"},
+    {t:"Why is `setjmp`/`longjmp` dangerous? What happens to local variables and destructors?", type:"theory"},
+    {t:"Write a retry loop that retries a system call on EINTR.", type:"code"},
+    {t:"What is EINTR? Why do system calls get interrupted?", type:"theory"},
+    {t:"Write a logging framework in C that supports log levels (DEBUG, INFO, WARN, ERROR).", type:"code"},
+    {t:"What is the `_Noreturn` / `[[noreturn]]` attribute? When should a function be marked noreturn?", type:"concept"},
+    {t:"Explain defensive programming. Write a function with full parameter validation.", type:"code"},
+    {t:"What is static analysis? Name two static analysis tools for C.", type:"concept"},
+    {t:"How do you propagate errors up the call stack in C (no exceptions)? Show a pattern.", type:"code"},
+    {t:"What is POSIX `errno` thread safety? Is errno shared between threads?", type:"theory"},
+    {t:"Write a cleanup pattern using goto to handle multiple resource allocations safely.", type:"code"},
+    {t:"What is `atexit`? Register a cleanup function and demonstrate it.", type:"code"},
+    {t:"What is the difference between `abort()` and `exit()`?", type:"concept"},
+  ]},
+  m21: { total: 30, questions: [
+    {t:"Draw the memory layout of a C process: text, data, BSS, heap, stack. Explain each segment.", type:"theory"},
+    {t:"What is undefined behavior (UB) in C? Why does the standard define it this way?", type:"theory"},
+    {t:"List 10 common sources of undefined behavior in C.", type:"theory"},
+    {t:"What is signed integer overflow? Write code that demonstrates compiler exploitation of UB.", type:"debug"},
+    {t:"What is strict aliasing? Write code that violates it and explain why the compiler may break it.", type:"debug"},
+    {t:"What is `__attribute__((may_alias))`? When do you need it?", type:"concept"},
+    {t:"What is a sequence point? Give an example of code with unspecified behavior due to missing sequence points.", type:"debug"},
+    {t:"What is the difference between unspecified behavior, undefined behavior, and implementation-defined behavior?", type:"theory"},
+    {t:"What is a trap representation? Which types can have them?", type:"theory"},
+    {t:"Explain what AddressSanitizer (ASan) detects. Compile a buggy program with ASan and interpret the output.", type:"code"},
+    {t:"Explain what UBSan detects. Give 3 examples of UB it can catch at runtime.", type:"concept"},
+    {t:"What is MemorySanitizer (MSan)? How does it differ from ASan?", type:"theory"},
+    {t:"What is the stack frame layout for a function call? What is the return address?", type:"theory"},
+    {t:"What is a buffer overflow on the stack? How can it overwrite the return address?", type:"theory"},
+    {t:"What are stack canaries? Explain how `-fstack-protector` works.", type:"theory"},
+    {t:"What is ASLR (Address Space Layout Randomization)? How does it mitigate exploits?", type:"theory"},
+    {t:"What is DEP/NX (non-executable stack)? How does it prevent code injection?", type:"theory"},
+    {t:"What does `__builtin_expect` do? Write code that uses it for branch prediction hints.", type:"code"},
+    {t:"What is pointer provenance? Explain why `(int *)((uintptr_t)p + 0)` may not be equivalent to `p`.", type:"theory"},
+    {t:"What is `-fsanitize=undefined,address`? Write a Makefile target that enables both.", type:"code"},
+    {t:"What is `valgrind --tool=memcheck`? Run it on a program with a use-after-free and read the report.", type:"concept"},
+    {t:"What is the `volatile` keyword and when is it required (signal handlers, memory-mapped I/O)?", type:"theory"},
+    {t:"What is `sig_atomic_t` and why is it the only type safe to access in signal handlers?", type:"theory"},
+    {t:"Explain the C abstract machine model. Why does the standard define behavior in terms of it?", type:"theory"},
+    {t:"What is a use-after-free vulnerability? Give a real-world impact example.", type:"theory"},
+    {t:"What is a heap overflow vs a stack overflow (security context)?", type:"theory"},
+    {t:"What is TOCTOU (time-of-check to time-of-use) race condition?", type:"theory"},
+    {t:"What is integer truncation vs integer overflow? Write examples of both.", type:"code"},
+    {t:"What is `__builtin_unreachable()`? How does it affect compiler optimization?", type:"concept"},
+    {t:"Write code that demonstrates why reading an uninitialized variable is UB and not just 'gets a garbage value'.", type:"debug"},
+  ]},
+  m22: { total: 30, questions: [
+    {t:"Parse the declaration `int (*fp)(int *, double)`. What is fp?", type:"concept"},
+    {t:"Parse `char *(*f[])(int)`. Use cdecl to verify.", type:"concept"},
+    {t:"Write an array of function pointers for arithmetic operations and dispatch via index.", type:"code"},
+    {t:"Implement a callback system: a sort function that takes a comparator as a function pointer.", type:"code"},
+    {t:"Write a plugin system that loads function pointers via a table of strings.", type:"code"},
+    {t:"What is `qsort`? Write a comparator for structs sorted by a string field.", type:"code"},
+    {t:"What is `bsearch`? Use it to search a sorted array of structs.", type:"code"},
+    {t:"Explain the `restrict` keyword. Write a function that benefits from it.", type:"code"},
+    {t:"What is pointer aliasing and why does the compiler assume pointers alias by default?", type:"theory"},
+    {t:"Write `memcpy` manually. Why can you assume no overlap?", type:"code"},
+    {t:"Write `memmove` manually. Why must you handle overlap?", type:"code"},
+    {t:"What is a pointer to an array vs a pointer to its first element? `int (*p)[10]` vs `int *p`.", type:"concept"},
+    {t:"Write a generic sort function using `void *` that works on any type (like qsort).", type:"code"},
+    {t:"What is a near pointer vs far pointer (16-bit DOS legacy)? Why does it matter historically?", type:"theory"},
+    {t:"Write a function pointer table for a simple virtual dispatch (object-oriented in C).", type:"code"},
+    {t:"Implement a simple observer pattern in C using function pointers.", type:"code"},
+    {t:"What is a trampoline function in the context of function pointers?", type:"theory"},
+    {t:"Write a function that curries a two-argument function into a one-argument function using closures (via a struct).", type:"code"},
+    {t:"Explain pointer-to-member in C context (no C++). Why is there no direct equivalent?", type:"theory"},
+    {t:"What is `offsetof`? Use it to implement a container_of macro.", type:"code"},
+    {t:"Implement a linked list where the list node is embedded in the data struct (Linux kernel style).", type:"code"},
+    {t:"What is a sentinel pointer? Use one to simplify linked list code.", type:"code"},
+    {t:"Write a memory allocator that returns aligned memory (e.g., 16-byte aligned).", type:"code"},
+    {t:"What is `uintptr_t` and when should you cast a pointer to it?", type:"concept"},
+    {t:"Write a function that walks a struct's fields at runtime using computed offsets.", type:"code"},
+    {t:"What is computed goto (GCC extension)? Implement a fast interpreter dispatch loop.", type:"code"},
+    {t:"Write a generic swap macro using `void *` and `memcpy`.", type:"code"},
+    {t:"Explain how longjmp interacts with automatic variables and why you need `volatile` on them.", type:"theory"},
+    {t:"What is `-fno-strict-aliasing`? When would you use it?", type:"concept"},
+    {t:"Write a type-safe tagged union in C using macros and function pointers.", type:"code"},
+  ]},
+  m23: { total: 30, questions: [
+    {t:"Implement a hash table with separate chaining. Include insert, lookup, delete.", type:"code"},
+    {t:"Implement a hash table with open addressing (linear probing).", type:"code"},
+    {t:"What is a hash function? Write a simple djb2 string hash function.", type:"code"},
+    {t:"What is load factor? When should you resize a hash table?", type:"theory"},
+    {t:"Implement a min-heap. Include insert, extract-min, and heapify.", type:"code"},
+    {t:"Implement heap sort using your min-heap.", type:"code"},
+    {t:"Implement a trie for storing and searching strings.", type:"code"},
+    {t:"Add delete and prefix-search to your trie.", type:"code"},
+    {t:"Represent a graph using an adjacency list in C.", type:"code"},
+    {t:"Represent a graph using an adjacency matrix.", type:"code"},
+    {t:"Implement BFS on a graph.", type:"code"},
+    {t:"Implement DFS on a graph (recursive and iterative).", type:"code"},
+    {t:"Detect a cycle in a directed graph using DFS.", type:"code"},
+    {t:"Implement Dijkstra's shortest path algorithm.", type:"code"},
+    {t:"Implement a red-black tree insert (or at least explain all rotation cases).", type:"code"},
+    {t:"What is a skip list? Implement a simple version.", type:"code"},
+    {t:"Implement a bloom filter.", type:"code"},
+    {t:"Implement a disjoint set (union-find) with path compression.", type:"code"},
+    {t:"Implement a LRU cache using a hash map + doubly linked list.", type:"code"},
+    {t:"Implement a ring buffer (fixed-size circular queue).", type:"code"},
+    {t:"What is a sparse matrix? Implement a CSR (Compressed Sparse Row) representation.", type:"code"},
+    {t:"Implement topological sort (Kahn's algorithm).", type:"code"},
+    {t:"What is a Fibonacci heap (conceptually)? Why is it used for Dijkstra's?", type:"theory"},
+    {t:"Implement a sorted set using a BST. Support insert, delete, contains, next/prev.", type:"code"},
+    {t:"What is a treap? Implement a treap with insert and search.", type:"code"},
+    {t:"Implement a B-tree node split and insert (simplified).", type:"code"},
+    {t:"Compare hash table vs BST for a dictionary. When would you choose each?", type:"theory"},
+    {t:"Implement a generic container (like a map) using void* and function pointers.", type:"code"},
+    {t:"What is the time complexity of each operation in your hash table, heap, and trie?", type:"theory"},
+    {t:"Implement a persistent data structure: a path-copying persistent stack.", type:"code"},
+  ]},
+  m24: { total: 30, questions: [
+    {t:"Create a two-file project: main.c and math_utils.c with a header. Compile and link separately.", type:"code"},
+    {t:"What is internal vs external linkage? Explain with static globals and functions.", type:"theory"},
+    {t:"What is a forward declaration? When is it required?", type:"concept"},
+    {t:"Write a Makefile with automatic dependency tracking using `$(CC) -MM`.", type:"code"},
+    {t:"What is `ar`? Create a static library from two .o files.", type:"code"},
+    {t:"What is a shared library (.so)? Compile a .so and link against it.", type:"code"},
+    {t:"What is `-fPIC`? Why is it required for shared libraries?", type:"theory"},
+    {t:"Use `nm` to inspect the symbol table of an object file.", type:"code"},
+    {t:"Use `ldd` to show shared library dependencies of a binary.", type:"code"},
+    {t:"What is `dlopen`/`dlsym`/`dlclose`? Load a shared library at runtime.", type:"code"},
+    {t:"What is symbol visibility? Use `__attribute__((visibility(\"hidden\")))` to hide a symbol.", type:"code"},
+    {t:"What is a linker script? Write a simple one that places a section.", type:"code"},
+    {t:"What is `LD_LIBRARY_PATH` and `LD_PRELOAD`? How can LD_PRELOAD be used for function interposition?", type:"concept"},
+    {t:"Explain the difference between declaration and definition with respect to the linker.", type:"theory"},
+    {t:"What is the one definition rule (ODR) and what happens when you violate it?", type:"theory"},
+    {t:"What are weak symbols? Write a default implementation that can be overridden.", type:"code"},
+    {t:"What is dead code elimination? How does `-ffunction-sections -Wl,--gc-sections` work?", type:"concept"},
+    {t:"What is link-time optimization (LTO)? Enable it with `-flto`.", type:"concept"},
+    {t:"Write a modular project with a plugin interface: main app loads plugins via function pointers.", type:"code"},
+    {t:"What is `pkg-config`? Write a Makefile that uses it to find library flags.", type:"code"},
+    {t:"What is `CMake` conceptually? Why is it preferred over raw Makefiles for large projects?", type:"theory"},
+    {t:"What is `compile_commands.json`? How do you generate it and what uses it?", type:"concept"},
+    {t:"Explain `CFLAGS`, `LDFLAGS`, `LDLIBS` in a Makefile.", type:"concept"},
+    {t:"What is `rpath`? Set an rpath so a binary finds its shared library without LD_LIBRARY_PATH.", type:"code"},
+    {t:"What is the difference between `#include <file.h>` and `#include \"file.h\"`?", type:"concept"},
+    {t:"What are the dangers of header files that include implementation code?", type:"theory"},
+    {t:"What is unity build (single translation unit build)? Pros and cons?", type:"theory"},
+    {t:"What does `extern \"C\"` do in C++ headers? Why is it needed for C libraries?", type:"theory"},
+    {t:"Set up a project with sanitizers, debug, and release build targets in one Makefile.", type:"code"},
+    {t:"What is `objdump -d`? Disassemble a simple function and read the output.", type:"code"},
+  ]},
+  m25: { total: 30, questions: [
+    {t:"Use the POSIX `open()`, `read()`, `write()`, `close()` syscalls to copy a file.", type:"code"},
+    {t:"What is the difference between `open()` (POSIX) and `fopen()` (stdio)?", type:"theory"},
+    {t:"Write a program that uses `stat()` to print a file's size and permissions.", type:"code"},
+    {t:"What is `fork()`? Write a program that forks and has parent/child print different messages.", type:"code"},
+    {t:"What is `exec()`? Write a program that forks and execs `ls -la` in the child.", type:"code"},
+    {t:"What is a zombie process? How do you prevent them using `waitpid`?", type:"theory"},
+    {t:"What is an orphan process?", type:"theory"},
+    {t:"Write a program that creates a pipe and communicates between parent and child.", type:"code"},
+    {t:"What is `dup2`? Use it to redirect stdout to a file.", type:"code"},
+    {t:"What are signals? Write a program that handles SIGINT (Ctrl+C) gracefully.", type:"code"},
+    {t:"What is signal masking (`sigprocmask`)? Write a critical section protected from signals.", type:"code"},
+    {t:"What is `mmap`? Map a file into memory and modify it.", type:"code"},
+    {t:"What is `munmap` and `msync`?", type:"concept"},
+    {t:"What is a shared memory segment? Use `shm_open` + `mmap` for IPC between two processes.", type:"code"},
+    {t:"What is a named pipe (FIFO)? Write a producer/consumer using mkfifo.", type:"code"},
+    {t:"What is a Unix domain socket? Write a simple client/server using them.", type:"code"},
+    {t:"What is `select()`? Write a server that monitors multiple file descriptors.", type:"code"},
+    {t:"What is `poll()`? How does it differ from select?", type:"theory"},
+    {t:"What is `epoll`? Write a simple event loop using epoll.", type:"code"},
+    {t:"What is `getpid()` and `getppid()`? Use them in a forked program.", type:"code"},
+    {t:"What is `setuid`/`setgid`? Explain privilege escalation risks.", type:"theory"},
+    {t:"What is the `/proc` filesystem? Read `/proc/self/maps` to see memory layout.", type:"code"},
+    {t:"What is `ptrace`? Explain how debuggers like GDB use it.", type:"theory"},
+    {t:"What is `sendfile`? When is it more efficient than read+write?", type:"concept"},
+    {t:"Implement a simple shell that can run commands (fork+exec) and handle basic pipes.", type:"code"},
+    {t:"What is `daemon()`? Write a program that daemonizes itself.", type:"code"},
+    {t:"What is `inotify`? Write a program that watches a directory for file changes.", type:"code"},
+    {t:"What is `timerfd`? Create a periodic timer using it.", type:"code"},
+    {t:"What is `signalfd`? Why is it safer than async signal handlers?", type:"concept"},
+    {t:"What is `io_uring` (Linux 5.1+)? Explain its advantages over epoll for async I/O.", type:"theory"},
+  ]},
+  m26: { total: 30, questions: [
+    {t:"Create a thread using `pthread_create` that prints a message, join it with `pthread_join`.", type:"code"},
+    {t:"What is a race condition? Write code that demonstrates one with a shared counter.", type:"debug"},
+    {t:"Fix the race condition using a mutex (`pthread_mutex_t`).", type:"code"},
+    {t:"What is a deadlock? Write code that causes a deadlock between two threads.", type:"debug"},
+    {t:"How do you prevent deadlocks? Explain lock ordering.", type:"theory"},
+    {t:"What is a condition variable? Use one to implement a producer/consumer.", type:"code"},
+    {t:"What is a read-write lock (`pthread_rwlock_t`)? When does it outperform a mutex?", type:"code"},
+    {t:"What is a semaphore (`sem_t`)? Use one to limit concurrent access to a resource pool.", type:"code"},
+    {t:"What is the difference between a mutex and a semaphore?", type:"theory"},
+    {t:"What is thread-local storage (`__thread` / `_Thread_local`)? Write an example.", type:"code"},
+    {t:"What is a thread pool? Implement a simple one in C.", type:"code"},
+    {t:"What is a spinlock? When is it better than a mutex?", type:"theory"},
+    {t:"What is `pthread_once`? Use it to implement a thread-safe singleton.", type:"code"},
+    {t:"What is ThreadSanitizer (TSan)? Compile a racy program with it and interpret output.", type:"concept"},
+    {t:"What is `volatile` and why is it NOT sufficient for thread synchronization?", type:"theory"},
+    {t:"What are C11 atomics (`_Atomic`, `stdatomic.h`)? Write a lock-free counter.", type:"code"},
+    {t:"What is `atomic_compare_exchange_strong`? Implement a lock-free stack push.", type:"code"},
+    {t:"What is a memory fence/barrier? Explain `atomic_thread_fence`.", type:"theory"},
+    {t:"What are the C11 memory orders: relaxed, acquire, release, acq_rel, seq_cst?", type:"theory"},
+    {t:"Implement a lock-free single-producer single-consumer ring buffer.", type:"code"},
+    {t:"What is false sharing? Write code that demonstrates it and fix it with padding.", type:"debug"},
+    {t:"What is thread affinity? How do you pin a thread to a CPU core on Linux?", type:"concept"},
+    {t:"Implement a barrier: a point where all threads must arrive before any proceeds.", type:"code"},
+    {t:"What is `pthread_cancel`? Why is it dangerous? What is a cancellation point?", type:"theory"},
+    {t:"Write a parallel merge sort using pthreads.", type:"code"},
+    {t:"What is the ABA problem in lock-free programming?", type:"theory"},
+    {t:"What is priority inversion? How does priority inheritance solve it?", type:"theory"},
+    {t:"Write a work-stealing queue (conceptual design in C).", type:"code"},
+    {t:"What is `futex` on Linux? How does it underlie mutex implementations?", type:"theory"},
+    {t:"Implement a reader-writer lock from scratch using condition variables.", type:"code"},
+  ]},
+  m27: { total: 30, questions: [
+    {t:"Create a TCP server that accepts one client, reads a message, echoes it back.", type:"code"},
+    {t:"Create the corresponding TCP client that connects, sends a message, reads the reply.", type:"code"},
+    {t:"What is `socket()`, `bind()`, `listen()`, `accept()`, `connect()`? Explain each.", type:"concept"},
+    {t:"What is `SO_REUSEADDR`? Why do you almost always need to set it?", type:"concept"},
+    {t:"What is the difference between TCP and UDP? When would you use UDP?", type:"theory"},
+    {t:"Create a UDP server and client that exchange datagrams.", type:"code"},
+    {t:"What is `getaddrinfo`? Use it instead of hardcoding IPv4 addresses for portability.", type:"code"},
+    {t:"What is `getnameinfo`? Convert a sockaddr to a host/service string.", type:"code"},
+    {t:"What is `htonl` / `ntohl` / `htons` / `ntohs`? Why do you need them?", type:"concept"},
+    {t:"What is a non-blocking socket? Set `O_NONBLOCK` and handle `EAGAIN`/`EWOULDBLOCK`.", type:"code"},
+    {t:"Write a server that handles multiple clients concurrently using `select()`.", type:"code"},
+    {t:"Rewrite the multi-client server using `epoll` (Linux).", type:"code"},
+    {t:"What is `EINPROGRESS`? Handle non-blocking `connect()`.", type:"code"},
+    {t:"What is a half-open connection? How does TCP handle it?", type:"theory"},
+    {t:"What is `Nagle's algorithm`? When do you disable it with `TCP_NODELAY`?", type:"theory"},
+    {t:"What is `SO_KEEPALIVE`? When and why do you use it?", type:"concept"},
+    {t:"Implement a simple HTTP/1.0 server that serves a static file.", type:"code"},
+    {t:"What is `sendmsg` / `recvmsg`? How do they differ from `send` / `recv`?", type:"concept"},
+    {t:"What is `socketpair`? Use it to implement IPC between parent and child.", type:"code"},
+    {t:"What is a Unix domain socket vs a TCP socket for local IPC? Performance difference?", type:"theory"},
+    {t:"Implement a simple chat server that broadcasts messages to all connected clients.", type:"code"},
+    {t:"What is TLS/SSL? How would you add TLS to your server using OpenSSL?", type:"theory"},
+    {t:"What is `writev` / `readv`? Explain scatter-gather I/O.", type:"concept"},
+    {t:"What is a proxy server? Implement a simple TCP proxy that forwards connections.", type:"code"},
+    {t:"What is `setsockopt` / `getsockopt`? Set a receive buffer size.", type:"code"},
+    {t:"What is `MSG_DONTWAIT`? How does it differ from `O_NONBLOCK`?", type:"concept"},
+    {t:"What is a multicast socket? Write code to send to a multicast group.", type:"code"},
+    {t:"What is ICMP? Write a simple ping using raw sockets (requires root).", type:"code"},
+    {t:"Explain the TCP 3-way handshake and 4-way teardown.", type:"theory"},
+    {t:"What is io_uring and how does it improve network I/O over epoll?", type:"theory"},
+  ]},
+  m28: { total: 30, questions: [
+    {t:"What new features did C99 introduce? List at least 8.", type:"theory"},
+    {t:"What is `//` comment support (C99)? What about mixed declarations and code?", type:"concept"},
+    {t:"What is a designated initializer for structs in C99? Write an example.", type:"code"},
+    {t:"What is a compound literal in C99? Use one to pass a struct to a function inline.", type:"code"},
+    {t:"What is `_Bool` and `stdbool.h` in C99?", type:"concept"},
+    {t:"What is `inline` in C99 and its exact semantics (different from C++)?", type:"theory"},
+    {t:"What are `restrict`-qualified pointers in C99?", type:"concept"},
+    {t:"What is `<stdint.h>` in C99? Why is it essential for portable code?", type:"concept"},
+    {t:"What is a variable-length array (VLA) in C99? Why is it optional in C11?", type:"theory"},
+    {t:"What new features did C11 introduce? List at least 8.", type:"theory"},
+    {t:"What is `_Static_assert`? Write a compile-time assertion that fails if int is less than 4 bytes.", type:"code"},
+    {t:"What is `_Generic`? Write a type-generic `abs()` macro using it.", type:"code"},
+    {t:"What is `_Atomic` and `<stdatomic.h>` in C11? Write an atomic increment.", type:"code"},
+    {t:"What is `_Thread_local` in C11? Write an example.", type:"code"},
+    {t:"What are the C11 thread functions (`thrd_create`, `thrd_join`)? Compare to pthreads.", type:"concept"},
+    {t:"What is `alignas` and `alignof` in C11? Write a struct with forced 16-byte alignment.", type:"code"},
+    {t:"What is `noreturn` (`_Noreturn`) in C11?", type:"concept"},
+    {t:"What is anonymous struct/union in C11? Where is it useful?", type:"concept"},
+    {t:"What features did C17 introduce over C11?", type:"theory"},
+    {t:"What major features are coming in C23? (nullptr, typeof, #embed, [[attributes]])", type:"theory"},
+    {t:"What is `typeof` (C23 / GNU extension)? Write a type-safe max macro using it.", type:"code"},
+    {t:"What is `[[nodiscard]]` in C23? Use it on a function.", type:"code"},
+    {t:"What is `nullptr` in C23? How does it improve on NULL?", type:"concept"},
+    {t:"What is `#embed` in C23? Embed a binary file into a C program at compile time.", type:"code"},
+    {t:"What is `constexpr` in C23? How does it differ from `const`?", type:"concept"},
+    {t:"What is the `__has_include` preprocessor feature?", type:"concept"},
+    {t:"What is a type-generic math function from `<tgmath.h>` (C99)?", type:"concept"},
+    {t:"What is `<uchar.h>` (C11)? What Unicode types does it define?", type:"concept"},
+    {t:"What is `_Pragma` vs `#pragma`?", type:"concept"},
+    {t:"Write a header that gracefully degrades across C99, C11, and C23 using feature detection.", type:"code"},
+  ]},
+  m29: { total: 30, questions: [
+    {t:"Explain the memory hierarchy: registers, L1/L2/L3 cache, RAM, disk. Typical latencies.", type:"theory"},
+    {t:"What is cache locality? Rewrite a matrix multiplication to use row-major access.", type:"code"},
+    {t:"What is false sharing in a cache line? Write a benchmark that shows it.", type:"code"},
+    {t:"What does `-O0`, `-O1`, `-O2`, `-O3`, `-Os`, `-Oz` each do?", type:"theory"},
+    {t:"What is `-march=native`? When should you use it?", type:"concept"},
+    {t:"What is `gprof`? Profile a program and identify the hotspot.", type:"code"},
+    {t:"What is `perf stat`? Run it on a program and interpret IPC, cache-miss rate.", type:"code"},
+    {t:"What is `perf record` + `perf report`? Find a hot function.", type:"code"},
+    {t:"What is loop unrolling? Write a manually unrolled loop and compare to the compiler's output.", type:"code"},
+    {t:"What is SIMD? Explain SSE2/AVX conceptually. Write a vectorized sum using intrinsics.", type:"code"},
+    {t:"What is `-ffast-math`? What optimizations does it enable and what does it break?", type:"theory"},
+    {t:"What is inlining? When does the compiler inline a function and when should you force it?", type:"theory"},
+    {t:"What is function call overhead? Write a microbenchmark showing it.", type:"code"},
+    {t:"What is branch misprediction? Use `__builtin_expect` to hint the predictor.", type:"code"},
+    {t:"What is memory prefetching? Use `__builtin_prefetch` in a loop.", type:"code"},
+    {t:"What is struct of arrays (SoA) vs array of structs (AoS)? Show performance difference.", type:"code"},
+    {t:"What is memory alignment and why does misalignment hurt performance?", type:"theory"},
+    {t:"Use `valgrind --tool=callgrind` + `kcachegrind` to visualize a callgraph.", type:"code"},
+    {t:"What is data-oriented design? Refactor a game loop from OOP style to DOD style.", type:"code"},
+    {t:"What is compiler alias analysis? How does it affect auto-vectorization?", type:"theory"},
+    {t:"What is link-time optimization (LTO)? Enable it and measure binary size/speed changes.", type:"code"},
+    {t:"What is profile-guided optimization (PGO)? Walk through the 3-step process.", type:"code"},
+    {t:"What is `__attribute__((hot))` and `__attribute__((cold))`?", type:"concept"},
+    {t:"What is a branch table? When does the compiler generate one from a switch?", type:"theory"},
+    {t:"Write a benchmark harness in C that prevents dead code elimination by the compiler.", type:"code"},
+    {t:"What is the difference between throughput and latency in the context of CPU pipelines?", type:"theory"},
+    {t:"What is Amdahl's Law? Calculate the max speedup for parallelizing 80% of a program.", type:"theory"},
+    {t:"What is -funroll-loops? Measure its effect on a simple tight loop.", type:"code"},
+    {t:"What is -fomit-frame-pointer? When is it safe and when does it break things?", type:"concept"},
+    {t:"Write a cache-oblivious matrix transpose and explain why it's better than naive.", type:"code"},
+  ]},
+  m30: { total: 30, questions: [
+    {t:"Start GDB on a crashing program. Use `bt` (backtrace) to find the crash location.", type:"code"},
+    {t:"Set a breakpoint in GDB at a specific function. Step through with `next` and `step`.", type:"code"},
+    {t:"Use GDB `watch` to set a watchpoint on a variable. Catch when it changes.", type:"code"},
+    {t:"Enable a core dump and load it in GDB: `gdb ./program core`.", type:"code"},
+    {t:"Use GDB's `print`, `display`, `x` commands to inspect memory.", type:"code"},
+    {t:"What is GDB's `reverse-next` / `reverse-continue` (reverse debugging with rr)?", type:"concept"},
+    {t:"Use `rr record` and `rr replay` to record and replay a non-deterministic bug.", type:"code"},
+    {t:"What is `sanitize=address`? Trigger a heap buffer overflow and read the ASan report.", type:"code"},
+    {t:"Use `valgrind --leak-check=full`. Interpret the 'definitely lost' vs 'indirectly lost' output.", type:"code"},
+    {t:"What is `cppcheck`? Run it on a file with a null dereference and read the output.", type:"code"},
+    {t:"What is `clang-tidy`? Run it with a set of checks on a codebase.", type:"code"},
+    {t:"What is AFL (American Fuzzy Lop)? Set up fuzzing on a simple parser function.", type:"code"},
+    {t:"What is `libFuzzer`? Write a fuzz target and run it.", type:"code"},
+    {t:"What is a GDB `.gdbinit` file? Write one that sets up pretty-printers.", type:"code"},
+    {t:"What are GDB conditional breakpoints? Set one that only triggers when x > 100.", type:"code"},
+    {t:"What is `strace`? Run it on a program and identify all system calls made.", type:"code"},
+    {t:"What is `ltrace`? How does it differ from strace?", type:"concept"},
+    {t:"What is `objdump -d`? Disassemble a function and identify a bug from the assembly.", type:"code"},
+    {t:"What is `readelf -a`? Inspect ELF headers of a compiled binary.", type:"code"},
+    {t:"What is `nm`? Find all undefined symbols in an object file.", type:"code"},
+    {t:"What is `size`? Show the text/data/bss sizes of a binary.", type:"code"},
+    {t:"What is `-fsanitize=thread`? Trigger a data race and read the TSan output.", type:"code"},
+    {t:"What is `-fsanitize=memory`? What does MemorySanitizer detect that ASan doesn't?", type:"concept"},
+    {t:"What is `-fsanitize=leak`? Run it standalone to find only leaks.", type:"code"},
+    {t:"What is Coverity (static analysis)? What types of bugs does it find beyond cppcheck?", type:"theory"},
+    {t:"Write a unit test for a C function using a simple assertion framework (no dependencies).", type:"code"},
+    {t:"What is `cmocka` or `Unity`? Write tests for a linked list using one of them.", type:"code"},
+    {t:"What is mutation testing conceptually? How does it measure test quality?", type:"theory"},
+    {t:"What is code coverage? Use `--coverage` (gcov) to measure coverage on your tests.", type:"code"},
+    {t:"Set up a CI pipeline (GitHub Actions) that builds, runs sanitizers, and checks coverage.", type:"code"},
+  ]},
+};
+
+// ============================================================
+// RENDER & INTERACTION
+// ============================================================
+const TOTAL_QS = Object.values(MODULES).reduce((s,m)=>s+m.total,0);
+document.getElementById('total-qs').textContent = TOTAL_QS;
+document.getElementById('created-date').textContent = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+
+const TYPE_MAP = {
+  theory:'type-theory',
+  code:'type-code',
+  debug:'type-debug',
+  concept:'type-concept'
+};
+
+// Load saved state
+const saved = JSON.parse(localStorage.getItem('c_tracker_v3') || '{}');
+
+function renderModule(mid) {
+  const m = MODULES[mid];
+  const tbody = document.getElementById(`${mid}-tbody`);
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  m.questions.forEach((q, i) => {
+    const key = `${mid}_q${i}`;
+    const isDone = saved[key] === true;
+    const tr = document.createElement('tr');
+    tr.className = `q-row${isDone?' checked':''}`;
+    tr.innerHTML = `
+      <td><div class="q-check${isDone?' checked':''}" onclick="toggleQ('${key}','${mid}',this)"></div></td>
+      <td class="q-num">Q${String(i+1).padStart(2,'0')}</td>
+      <td class="q-text">${q.t}</td>
+      <td><span class="q-type ${TYPE_MAP[q.type]||'type-concept'}">${q.type}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  updateModuleProgress(mid);
+}
+
+function toggleQ(key, mid, el) {
+  const row = el.closest('tr');
+  const isDone = !el.classList.contains('checked');
+  saved[key] = isDone;
+  localStorage.setItem('c_tracker_v3', JSON.stringify(saved));
+  el.classList.toggle('checked', isDone);
+  row.classList.toggle('checked', isDone);
+  updateModuleProgress(mid);
+  updateGlobal();
+}
+
+function updateModuleProgress(mid) {
+  const m = MODULES[mid];
+  let done = 0;
+  for (let i=0; i<m.total; i++) {
+    if (saved[`${mid}_q${i}`]) done++;
+  }
+  const pct = Math.round(done/m.total*100);
+  document.getElementById(`${mid}-prog`).textContent = `${done}/${m.total}`;
+  const bar = document.getElementById(`${mid}-bar`);
+  const barpct = document.getElementById(`${mid}-barpct`);
+  if(bar) bar.style.width = pct+'%';
+  if(barpct) barpct.textContent = pct+'%';
+  const prog = document.getElementById(`${mid}-prog`);
+  const status = document.getElementById(`${mid}-status`);
+  if(done===0){ prog.classList.remove('done'); status.textContent='Not Started'; status.className='module-status status-notstarted'; }
+  else if(done===m.total){ prog.classList.add('done'); status.textContent='Complete ✓'; status.className='module-status status-done'; }
+  else { prog.classList.remove('done'); status.textContent='In Progress'; status.className='module-status status-inprogress'; }
+}
+
+function updateGlobal() {
+  let totalDone = 0;
+  let modulesDone = 0;
+  Object.keys(MODULES).forEach(mid => {
+    const m = MODULES[mid];
+    let done = 0;
+    for(let i=0;i<m.total;i++) if(saved[`${mid}_q${i}`]) done++;
+    totalDone += done;
+    if(done===m.total) modulesDone++;
+  });
+  const pct = Math.round(totalDone/TOTAL_QS*100);
+  document.getElementById('total-done').textContent = totalDone;
+  document.getElementById('pct-done').textContent = pct+'%';
+  document.getElementById('modules-done').textContent = modulesDone;
+  document.getElementById('main-bar').style.width = pct+'%';
+  document.getElementById('bar-pct').textContent = pct+'%';
+  // today's questions (simple: count toggles in this session)
+}
+
+function toggleModule(mid) {
+  const el = document.getElementById(mid);
+  const isOpen = el.classList.contains('open');
+  if(!isOpen && !el.dataset.rendered) {
+    renderModule(mid);
+    el.dataset.rendered = '1';
+  }
+  el.classList.toggle('open', !isOpen);
+}
+
+// Initialize global progress on load
+updateGlobal();
+Object.keys(MODULES).forEach(mid => updateModuleProgress(mid));
+
+// Track today's Q completions in session
+let todayCount = 0;
+const origToggleQ = window.toggleQ;
+window.toggleQ = function(key, mid, el) {
+  const wasDone = saved[key]===true;
+  origToggleQ(key, mid, el);
+  if(!wasDone) { todayCount++; document.getElementById('streak').textContent = todayCount; }
+};
+</script>
+</body>
+</html>
