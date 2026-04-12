@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "C-Mastery-Unified-Roadmap-Tracker.html"
-LS_KEY = "c_mastery_claude_site_v1"
+LS_KEY = "c_mastery_merged_q_v1"
 
 
 def he(s: str) -> str:
@@ -94,50 +94,7 @@ def parse_code_questions(md: str) -> list[dict]:
     return out
 
 
-def md_lines_to_html(text: str) -> str:
-    chunks: list[str] = []
-    list_mode: str | None = None  # 'ul' | 'ol'
-
-    def close_list() -> None:
-        nonlocal list_mode
-        if list_mode == "ul":
-            chunks.append("</ul>")
-        elif list_mode == "ol":
-            chunks.append("</ol>")
-        list_mode = None
-
-    for line in text.splitlines():
-        line = line.rstrip()
-        if not line.strip():
-            close_list()
-            continue
-        if line.startswith("## "):
-            close_list()
-            chunks.append(f"<h4>{he(line[3:].strip())}</h4>")
-        elif line.startswith("- ") or line.startswith("* "):
-            if list_mode != "ul":
-                close_list()
-                chunks.append("<ul>")
-                list_mode = "ul"
-            chunks.append(f"<li>{he(line[2:].strip())}</li>")
-        elif re.match(r"^\d+\.\s", line):
-            if list_mode != "ol":
-                close_list()
-                chunks.append("<ol>")
-                list_mode = "ol"
-            item = re.sub(r"^\d+\.\s", "", line)
-            chunks.append(f"<li>{he(item)}</li>")
-        elif line.startswith(">"):
-            close_list()
-            chunks.append(f"<blockquote>{he(line.lstrip('> '))}</blockquote>")
-        else:
-            close_list()
-            chunks.append(f"<p>{he(line)}</p>")
-    close_list()
-    return "\n".join(chunks)
-
-
-def parse_phase_sections(md: str) -> list[dict]:
+def split_phase_raw(md: str) -> list[dict]:
     parts = re.split(r"\n(?=# [^#])", md.strip())
     sections = []
     for p in parts:
@@ -147,8 +104,144 @@ def parse_phase_sections(md: str) -> list[dict]:
         lines = p.split("\n", 1)
         title = lines[0].lstrip("# ").strip()
         body = lines[1] if len(lines) > 1 else ""
-        sections.append({"title": title, "html": md_lines_to_html(body)})
+        sections.append({"title": title, "body": body})
     return sections
+
+
+def dedupe_indices(indices: list[int]) -> list[int]:
+    seen: set[int] = set()
+    out: list[int] = []
+    for i in indices:
+        if i not in seen:
+            seen.add(i)
+            out.append(i)
+    return out
+
+
+def pq_item_kind(text: str) -> str:
+    t = text.lower()
+    if any(
+        w in t
+        for w in (
+            "write ",
+            "write a",
+            "implement ",
+            "program ",
+            "show how",
+            "compile ",
+            "run gdb",
+            "use `",
+            "debug ",
+        )
+    ):
+        return "code"
+    return "theory"
+
+
+def extract_phase_tier_questions(body: str) -> dict[str, list[dict[str, str]]]:
+    result: dict[str, list[dict[str, str]]] = {
+        "Beginner": [],
+        "Intermediate": [],
+        "Advanced": [],
+    }
+    current: str | None = None
+    for raw in body.splitlines():
+        line = raw.strip()
+        if line.startswith("### "):
+            h = line[4:].lower()
+            if "beginner" in h:
+                current = "Beginner"
+            elif "intermediate" in h:
+                current = "Intermediate"
+            elif "advanced" in h:
+                current = "Advanced"
+            else:
+                current = None
+            continue
+        if not current or not line or line.startswith("---") or line.startswith("#"):
+            continue
+        if line.startswith("*(") or line.startswith(">"):
+            continue
+        text = ""
+        if line.startswith("- "):
+            text = line[2:].strip()
+        elif re.match(r"^\d+\.\s", line):
+            text = re.sub(r"^\d+\.\s", "", line).strip()
+        if len(text) < 4:
+            continue
+        result[current].append({"t": text, "k": pq_item_kind(text)})
+    return result
+
+
+def build_extra_questions(
+    mid: str,
+    mg: dict,
+    cq_topics: list[dict],
+    pq_topics: list[dict],
+    phase_sections: list[dict],
+) -> dict[str, list[dict[str, str]]]:
+    out: dict[str, list[dict[str, str]]] = {
+        "Beginner": [],
+        "Intermediate": [],
+        "Advanced": [],
+    }
+    seen: set[str] = set()
+
+    def push(tier: str, item: dict[str, str]) -> None:
+        k = item["t"].strip().lower()
+        if k in seen:
+            return
+        seen.add(k)
+        out[tier].append({"t": item["t"], "k": item["k"]})
+
+    for ci in dedupe_indices(mg["cq"]):
+        t = cq_topics[ci]
+        for lab, key in (
+            ("Beginner", "beginner"),
+            ("Intermediate", "intermediate"),
+            ("Advanced", "advanced"),
+        ):
+            for q in t.get(key) or []:
+                push(lab, {"t": q, "k": "code"})
+
+    for pi in dedupe_indices(mg["pq"]):
+        t = pq_topics[pi]
+        for lab, key in (
+            ("Beginner", "beginner"),
+            ("Intermediate", "intermediate"),
+            ("Advanced", "advanced"),
+        ):
+            for q in t.get(key) or []:
+                qq = str(q).strip()
+                push(lab, {"t": qq, "k": pq_item_kind(qq)})
+
+    for ph_i in sorted(set(mg["ph"])):
+        if 0 <= ph_i < len(phase_sections):
+            sub = extract_phase_tier_questions(phase_sections[ph_i]["body"])
+            for lab in ("Beginner", "Intermediate", "Advanced"):
+                for item in sub[lab]:
+                    push(lab, item)
+    return out
+
+
+def parse_claude_totals(modules_obj: str) -> dict[str, int]:
+    totals: dict[str, int] = {}
+    for m in re.finditer(r"\bm(\d{2}):\s*\{\s*total:\s*(\d+)", modules_obj):
+        totals[f"m{m.group(1)}"] = int(m.group(2))
+    return totals
+
+
+def layer_for_card_phase(phase: str) -> str:
+    return {"beginner": "Beginner", "intermediate": "Intermediate", "advanced": "Advanced"}[phase]
+
+
+def count_merged_rows(claude_n: int, layer: str, extra: dict[str, list]) -> int:
+    n = 0
+    for tier in ("Beginner", "Intermediate", "Advanced"):
+        if tier == layer:
+            n += claude_n
+        n += len(extra.get(tier) or [])
+    return n
 
 
 # Perplexity JSON index 0..15, ChatGPT Code-Questions index 0..11, phase section indices
@@ -186,64 +279,6 @@ MERGE = {
 }
 
 
-def render_coding_block(cq_topics: list[dict], indices: list[int]) -> str:
-    seen = []
-    for i in indices:
-        if i not in seen:
-            seen.append(i)
-    parts = []
-    for i in seen:
-        t = cq_topics[i]
-        parts.append(f'<div class="merge-block"><h3 class="merge-block-title">{he(t["title"])}</h3>')
-        for label, key in (("Beginner", "beginner"), ("Intermediate", "intermediate"), ("Advanced", "advanced")):
-            qs = t.get(key) or []
-            if not qs:
-                continue
-            parts.append(f'<h4 class="lvl">{label}</h4><ol class="q-ol">')
-            for q in qs:
-                parts.append(f"<li>{he(q)}</li>")
-            parts.append("</ol>")
-        parts.append("</div>")
-    return "\n".join(parts) if parts else '<p class="empty-note">No coding prompts mapped for this module.</p>'
-
-
-def render_pq_block(pq_topics: list[dict], indices: list[int]) -> str:
-    seen = []
-    for i in indices:
-        if i not in seen:
-            seen.append(i)
-    parts = []
-    for i in seen:
-        t = pq_topics[i]
-        name = t.get("name", f"Topic {i}")
-        parts.append(f'<div class="merge-block"><h3 class="merge-block-title">{he(name)}</h3>')
-        for label, key in (("Beginner", "beginner"), ("Intermediate", "intermediate"), ("Advanced", "advanced")):
-            qs = t.get(key) or []
-            if not qs:
-                continue
-            parts.append(f'<h4 class="lvl">{label}</h4><ol class="q-ol">')
-            for q in qs:
-                parts.append(f"<li>{he(str(q))}</li>")
-            parts.append("</ol>")
-        parts.append("</div>")
-    return "\n".join(parts) if parts else '<p class="empty-note">No concept drills mapped.</p>'
-
-
-def render_phase_block(phase_sections: list[dict], indices: list[int]) -> str:
-    if not indices:
-        return '<p class="empty-note">No phase notes mapped.</p>'
-    seen = sorted(set(indices))
-    parts = []
-    for i in seen:
-        if 0 <= i < len(phase_sections):
-            s = phase_sections[i]
-            parts.append(
-                f'<details class="phase-details" open><summary>{he(s["title"])}</summary>'
-                f'<div class="phase-body">{s["html"]}</div></details>'
-            )
-    return "\n".join(parts) if parts else '<p class="empty-note">No phase notes.</p>'
-
-
 def extract_roadmap_css(roadmap_html: str) -> str:
     return roadmap_html[roadmap_html.index("<style>") + 7 : roadmap_html.index("</style>")]
 
@@ -261,8 +296,26 @@ def main():
     modules_obj = extract_modules_object(tracker_raw)
     cq_topics = parse_code_questions(code_path.read_text(encoding="utf-8"))
     pq_topics = json.loads(json_path.read_text(encoding="utf-8"))
-    phase_sections = parse_phase_sections(phase_path.read_text(encoding="utf-8"))
+    phase_raw = split_phase_raw(phase_path.read_text(encoding="utf-8"))
+    claude_totals = parse_claude_totals(modules_obj)
     base_css = extract_roadmap_css(roadmap_raw)
+
+    extra_by_mid: dict[str, dict[str, list]] = {}
+    merged_totals: dict[str, int] = {}
+    module_layer: dict[str, str] = {}
+    for c in cards:
+        mid = c["id"]
+        layer = layer_for_card_phase(c["phase"])
+        module_layer[mid] = layer
+        ex = build_extra_questions(mid, MERGE[mid], cq_topics, pq_topics, phase_raw)
+        extra_by_mid[mid] = ex
+        cn = claude_totals.get(mid, 0)
+        merged_totals[mid] = count_merged_rows(cn, layer, ex)
+    global_total = sum(merged_totals.values())
+    _sep = (",", ":")
+    extra_json = json.dumps(extra_by_mid, ensure_ascii=False, separators=_sep)
+    layer_json = json.dumps(module_layer, ensure_ascii=False, separators=_sep)
+    totals_json = json.dumps(merged_totals, ensure_ascii=False, separators=_sep)
 
     extra_css = """
   .app-shell { max-width: 1480px; margin: 0 auto; padding: 0 20px 64px; position: relative; z-index: 1; }
@@ -302,18 +355,12 @@ def main():
   .detail-top .ico { font-size: 28px; display: block; margin-bottom: 10px; }
   .detail-top h2 { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; color: #fff; margin-bottom: 12px; letter-spacing: .5px; }
   .detail-top .detail-desc { font-size: 12px; color: var(--muted); line-height: 1.75; max-width: 900px; }
-  .tab-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 20px; background: var(--bg2); border-bottom: 1px solid var(--border); }
-  .tab-btn {
-    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
-    padding: 10px 14px; border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer; border-radius: 2px;
-  }
-  .tab-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .tab-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,157,0.08); }
-  .tab-btn:disabled { opacity: .35; cursor: not-allowed; }
-  .tab-panels { padding: 20px 24px 28px; }
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
+  .question-sheet { padding: 20px 24px 28px; }
   .panel-intro { font-size: 11px; color: var(--muted); margin-bottom: 16px; line-height: 1.6; }
+  tr.q-section td { background: var(--bg2); border-bottom: 1px solid var(--border) !important; padding: 12px 10px !important; }
+  .q-section-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent3); }
+  .detail-panel.beginner .q-section-label { color: var(--accent); }
+  .detail-panel.advanced .q-section-label { color: var(--accent2); }
   .q-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   .q-table th { text-align: left; font-size: 10px; color: var(--muted); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 1px; }
   .q-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: top; }
@@ -327,23 +374,9 @@ def main():
   .q-type { font-size: 10px; padding: 2px 8px; border-radius: 2px; text-transform: lowercase; }
   .type-theory { color: var(--accent); border: 1px solid rgba(0,255,157,0.25); }
   .type-code { color: var(--accent4); border: 1px solid rgba(30,144,255,0.25); }
-  .type-debug { color: var(--accent3); border: 1px solid rgba(255,165,2,0.25); }
-  .type-concept { color: #a78bfa; border: 1px solid rgba(167,139,250,0.25); }
   .prog-inline { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
   .prog-inline .bar { flex: 1; min-width: 120px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
   .prog-inline .fill { height: 100%; background: var(--accent); width: 0%; transition: width .3s; }
-  .merge-block { margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
-  .merge-block:last-child { border-bottom: none; }
-  .merge-block-title { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent4); margin-bottom: 12px; }
-  .lvl { font-size: 10px; color: var(--accent3); text-transform: uppercase; letter-spacing: 2px; margin: 14px 0 8px; }
-  .q-ol { margin: 0 0 8px 20px; color: var(--text); line-height: 1.6; font-size: 12px; }
-  .q-ol li { margin-bottom: 6px; }
-  .empty-note { color: var(--muted); font-size: 12px; font-style: italic; }
-  .phase-details { margin-bottom: 12px; border: 1px solid var(--border); background: var(--panel); }
-  .phase-details summary { padding: 12px 16px; cursor: pointer; font-weight: 600; color: var(--accent); font-size: 12px; }
-  .phase-body { padding: 0 16px 16px; font-size: 12px; color: var(--muted); line-height: 1.65; }
-  .phase-body h4 { color: var(--accent3); margin: 12px 0 6px; font-size: 11px; }
-  .phase-body ul, .phase-body ol { margin-left: 18px; }
   .top-stats { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: center; padding: 20px 0 8px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
   .top-stats .chip { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
   .top-stats .chip strong { color: var(--accent); }
@@ -370,15 +403,11 @@ def main():
         )
     rail_html = "\n".join(rail_parts)
 
-    # Module views
+    # Module views — single merged question table per module
     view_parts = []
     for c in cards:
         mid = c["id"]
-        mg = MERGE[mid]
-        coding_html = render_coding_block(cq_topics, mg["cq"])
-        pq_html = render_pq_block(pq_topics, mg["pq"])
-        ph_html = render_phase_block(phase_sections, mg["ph"])
-        total_q = 15 if c["phase"] == "beginner" else 20 if c["phase"] == "intermediate" else 30
+        mt = merged_totals[mid]
         view_parts.append(
             f'''
 <section class="module-view" id="view-{mid}" data-mid="{mid}">
@@ -389,27 +418,16 @@ def main():
       <h2>{he(c["title"])}</h2>
       <p class="detail-desc">{he(c["desc"])}</p>
     </div>
-    <div class="tab-row" role="tablist">
-      <button type="button" class="tab-btn active" data-tab="claude">Checklist · Claude ({total_q})</button>
-      <button type="button" class="tab-btn" data-tab="coding">Coding · ChatGPT</button>
-      <button type="button" class="tab-btn" data-tab="concepts">Concepts · Perplexity</button>
-      <button type="button" class="tab-btn" data-tab="phase">Phase · ChatGPT</button>
-    </div>
-    <div class="tab-panels">
-      <div class="tab-panel active" data-panel="claude">
-        <p class="panel-intro">Same checklist as the original tracker. Check boxes persist in your browser.</p>
-        <div class="prog-inline">
-          <span id="{mid}-prog" class="chip">0/{total_q}</span>
-          <span id="{mid}-status" class="module-status status-notstarted" style="font-size:10px;color:var(--muted)">Not started</span>
-          <div class="bar"><div class="fill" id="{mid}-bar"></div></div>
-          <span id="{mid}-barpct" style="font-size:10px;color:var(--muted)">0%</span>
-        </div>
-        <table class="q-table"><thead><tr><th style="width:36px">✓</th><th style="width:44px">#</th><th>Question</th><th style="width:72px">Type</th></tr></thead>
-        <tbody id="{mid}-tbody"></tbody></table>
+    <div class="question-sheet">
+      <p class="panel-intro">All sources merged by section (Beginner → Intermediate → Advanced). Original checklist items sit in the section that matches this module’s phase. Type is <strong>theory</strong> or <strong>code</strong> only.</p>
+      <div class="prog-inline">
+        <span id="{mid}-prog" class="chip">0/{mt}</span>
+        <span id="{mid}-status" class="module-status status-notstarted" style="font-size:10px;color:var(--muted)">Not started</span>
+        <div class="bar"><div class="fill" id="{mid}-bar"></div></div>
+        <span id="{mid}-barpct" style="font-size:10px;color:var(--muted)">0%</span>
       </div>
-      <div class="tab-panel" data-panel="coding"><p class="panel-intro">Coding prompts from <code>Code-Questions.md</code>, merged for this module.</p>{coding_html}</div>
-      <div class="tab-panel" data-panel="concepts"><p class="panel-intro">Question templates from <code>c-roadmap-full-questions.json</code>.</p>{pq_html}</div>
-      <div class="tab-panel" data-panel="phase"><p class="panel-intro">Excerpts from the ChatGPT phase roadmap that match this module.</p>{ph_html}</div>
+      <table class="q-table"><thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:80px">Type</th></tr></thead>
+      <tbody id="{mid}-tbody"></tbody></table>
     </div>
   </div>
 </section>'''
@@ -419,31 +437,17 @@ def main():
 
     app_js = """
 const LS_KEY = "__LS_KEY__";
-const TYPE_MAP = { theory:'type-theory', code:'type-code', debug:'type-debug', concept:'type-concept' };
+const EXTRA_QUESTIONS = __EXTRA_JSON__;
+const MODULE_LAYER = __LAYER_JSON__;
+const MERGED_TOTALS = __TOTALS_JSON__;
+const GLOBAL_TOTAL = __GLOBAL_TOTAL__;
 """ + js_modules + """
-const TOTAL_QS = Object.values(MODULES).reduce((s,m)=>s+m.total,0);
-
 const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
 let currentMid = 'm01';
 let rendered = {};
 
-function renderModule(mid) {
-  const m = MODULES[mid];
-  const tbody = document.getElementById(mid + '-tbody');
-  if (!tbody || !m) return;
-  tbody.innerHTML = '';
-  m.questions.forEach((q, i) => {
-    const key = mid + '_q' + i;
-    const isDone = saved[key] === true;
-    const tr = document.createElement('tr');
-    tr.className = 'q-row' + (isDone ? ' checked' : '');
-    tr.innerHTML = '<td><div class="q-check'+(isDone?' checked':'')+'" onclick="toggleQ(\\''+key+'\\',\\''+mid+'\\',this)"></div></td>'+
-      '<td class="q-num">Q'+String(i+1).padStart(2,'0')+'</td>'+
-      '<td class="q-text">'+escapeHtml(q.t)+'</td>'+
-      '<td><span class="q-type '+(TYPE_MAP[q.type]||'type-concept')+'">'+(q.type||'concept')+'</span></td>';
-    tbody.appendChild(tr);
-  });
-  updateModuleProgress(mid);
+function rowKind(t) {
+  return String(t || '').toLowerCase() === 'code' ? 'code' : 'theory';
 }
 
 function escapeHtml(s) {
@@ -452,7 +456,47 @@ function escapeHtml(s) {
   return d.innerHTML;
 }
 
-function toggleQ(key, mid, el) {
+function renderModule(mid) {
+  const tbody = document.getElementById(mid + '-tbody');
+  if (!tbody) return;
+  const m = MODULES[mid];
+  const layer = MODULE_LAYER[mid];
+  const extra = EXTRA_QUESTIONS[mid] || { Beginner: [], Intermediate: [], Advanced: [] };
+  const tiers = ['Beginner', 'Intermediate', 'Advanced'];
+  tbody.innerHTML = '';
+  let u = 0;
+  let qnum = 0;
+  tiers.forEach(tier => {
+    const rows = [];
+    if (tier === layer && m && m.questions) {
+      m.questions.forEach(q => { rows.push({ t: q.t, k: rowKind(q.type) }); });
+    }
+    (extra[tier] || []).forEach(item => { rows.push({ t: item.t, k: rowKind(item.k) }); });
+    if (!rows.length) return;
+    const sec = document.createElement('tr');
+    sec.className = 'q-section';
+    sec.innerHTML = '<td colspan="4"><span class="q-section-label">' + tier + '</span></td>';
+    tbody.appendChild(sec);
+    rows.forEach(item => {
+      const key = mid + '_u' + u;
+      u++;
+      qnum++;
+      const isDone = saved[key] === true;
+      const ty = item.k === 'code' ? 'code' : 'theory';
+      const tyClass = ty === 'code' ? 'type-code' : 'type-theory';
+      const tr = document.createElement('tr');
+      tr.className = 'q-row' + (isDone ? ' checked' : '');
+      tr.innerHTML = '<td><div class="q-check' + (isDone ? ' checked' : '') + '" onclick="toggleUnified(\\'' + key + '\\',\\'' + mid + '\\',this)"></div></td>' +
+        '<td class="q-num">Q' + String(qnum).padStart(3, '0') + '</td>' +
+        '<td class="q-text">' + escapeHtml(item.t) + '</td>' +
+        '<td><span class="q-type ' + tyClass + '">' + ty + '</span></td>';
+      tbody.appendChild(tr);
+    });
+  });
+  updateModuleProgress(mid);
+}
+
+function toggleUnified(key, mid, el) {
   const row = el.closest('tr');
   const isDone = !el.classList.contains('checked');
   saved[key] = isDone;
@@ -464,35 +508,34 @@ function toggleQ(key, mid, el) {
 }
 
 function updateModuleProgress(mid) {
-  const m = MODULES[mid];
-  if (!m) return;
+  const total = MERGED_TOTALS[mid] || 0;
   let done = 0;
-  for (let i = 0; i < m.total; i++) if (saved[mid + '_q' + i]) done++;
-  const pct = Math.round(done / m.total * 100);
+  for (let i = 0; i < total; i++) if (saved[mid + '_u' + i]) done++;
+  const pct = total ? Math.round(done / total * 100) : 0;
   const prog = document.getElementById(mid + '-prog');
   const bar = document.getElementById(mid + '-bar');
   const barpct = document.getElementById(mid + '-barpct');
   const status = document.getElementById(mid + '-status');
-  if (prog) prog.textContent = done + '/' + m.total;
+  if (prog) prog.textContent = done + '/' + total;
   if (bar) bar.style.width = pct + '%';
   if (barpct) barpct.textContent = pct + '%';
   if (status) {
     if (done === 0) { status.textContent = 'Not started'; status.className = 'module-status status-notstarted'; }
-    else if (done === m.total) { status.textContent = 'Complete ✓'; status.className = 'module-status status-done'; }
+    else if (done === total && total > 0) { status.textContent = 'Complete ✓'; status.className = 'module-status status-done'; }
     else { status.textContent = 'In progress'; status.className = 'module-status status-inprogress'; }
   }
 }
 
 function updateGlobal() {
   let totalDone = 0, modulesDone = 0;
-  Object.keys(MODULES).forEach(mid => {
-    const m = MODULES[mid];
-    let done = 0;
-    for (let i = 0; i < m.total; i++) if (saved[mid + '_q' + i]) done++;
-    totalDone += done;
-    if (done === m.total) modulesDone++;
+  Object.keys(MERGED_TOTALS).forEach(mid => {
+    const t = MERGED_TOTALS[mid];
+    let d = 0;
+    for (let i = 0; i < t; i++) if (saved[mid + '_u' + i]) d++;
+    totalDone += d;
+    if (t > 0 && d === t) modulesDone++;
   });
-  const pct = Math.round(totalDone / TOTAL_QS * 100);
+  const pct = GLOBAL_TOTAL ? Math.round(totalDone / GLOBAL_TOTAL * 100) : 0;
   const td = document.getElementById('total-done');
   const pd = document.getElementById('pct-done');
   const md = document.getElementById('modules-done');
@@ -517,19 +560,6 @@ function selectModule(mid) {
   }
 }
 
-function initTabs(root) {
-  root.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const panel = btn.dataset.tab;
-      const wrap = btn.closest('.detail-panel');
-      wrap.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
-      wrap.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === panel));
-    });
-  });
-}
-
-document.querySelectorAll('.module-view').forEach(initTabs);
-
 document.querySelectorAll('.rail a.nav-mod').forEach(a => {
   a.addEventListener('click', (e) => {
     e.preventDefault();
@@ -546,12 +576,18 @@ function bootFromHash() {
 
 window.addEventListener('hashchange', bootFromHash);
 document.addEventListener('DOMContentLoaded', () => {
+  Object.keys(MERGED_TOTALS).forEach(mid => updateModuleProgress(mid));
   updateGlobal();
-  Object.keys(MODULES).forEach(mid => updateModuleProgress(mid));
   bootFromHash();
 });
 """
-    app_js = app_js.replace("__LS_KEY__", LS_KEY)
+    app_js = (
+        app_js.replace("__LS_KEY__", LS_KEY)
+        .replace("__EXTRA_JSON__", extra_json)
+        .replace("__LAYER_JSON__", layer_json)
+        .replace("__TOTALS_JSON__", totals_json)
+        .replace("__GLOBAL_TOTAL__", str(global_total))
+    )
 
     html_out = f"""<!DOCTYPE html>
 <html lang="en">
@@ -576,7 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="subtitle">FROM ZERO TO SYSTEMS PROGRAMMER · EVERY CONCEPT · MERGED BANK</div>
     <div class="stats-row" style="margin-top:28px">
       <div class="stat"><div class="stat-num">30</div><div class="stat-label">Modules</div></div>
-      <div class="stat"><div class="stat-num">720+</div><div class="stat-label">Checklist</div></div>
+      <div class="stat"><div class="stat-num">{global_total}</div><div class="stat-label">Questions</div></div>
       <div class="stat"><div class="stat-num">3</div><div class="stat-label">Phases</div></div>
       <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Extra drills</div></div>
     </div>
@@ -596,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <span class="bar-total">ONE WORKSPACE</span>
   </div>
   <div class="top-stats">
-    <span class="chip"><strong id="total-done">0</strong> / {720} checklist items done</span>
+    <span class="chip"><strong id="total-done">0</strong> / {global_total} questions done</span>
     <span class="chip"><strong id="pct-done">0%</strong> overall</span>
     <span class="chip"><strong id="modules-done">0</strong> / 30 modules complete</span>
     <span class="chip" style="flex:1;min-width:200px;max-width:420px;display:flex;align-items:center;gap:10px">
