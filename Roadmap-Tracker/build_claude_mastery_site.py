@@ -16,6 +16,9 @@ ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "C-Mastery-Unified-Roadmap-Tracker.html"
 LS_KEY = "c_mastery_merged_q_v1"
 
+# GitHub Issues → live checklist (works when page is served over HTTPS, e.g. GitHub Pages)
+GITHUB_REPO = "Srivathsan98/C-Mastery"
+
 
 def he(s: str) -> str:
     return html_module.escape(s, quote=True)
@@ -384,6 +387,26 @@ def main():
   .hdr-mini .subtitle { margin-bottom: 0; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
   .meta-hid span { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .github-panel {
+    margin: 0 0 24px; padding: 20px 22px; border: 1px solid var(--border); background: var(--panel);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  }
+  .github-panel h3 { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; font-weight: 600; }
+  .github-panel .gh-lead { color: var(--muted); line-height: 1.6; margin-bottom: 14px; font-size: 11px; }
+  .github-panel .gh-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .github-panel .gh-bar-wrap { flex: 1; min-width: 160px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .github-panel .gh-bar-fill { height: 100%; width: 0%; background: var(--accent4); transition: width .4s; }
+  .github-panel #github-status { color: var(--accent3); min-height: 1.2em; margin-bottom: 10px; }
+  .github-panel #github-issues { max-height: 320px; overflow-y: auto; border: 1px solid var(--border); padding: 10px 12px; background: var(--bg); }
+  .gh-group { margin-bottom: 14px; }
+  .gh-group:last-child { margin-bottom: 0; }
+  .gh-group-title { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent3); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .gh-issue-row { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .gh-issue-row:last-child { border-bottom: none; }
+  .gh-issue-row input { margin-top: 3px; flex-shrink: 0; accent-color: var(--accent); }
+  .gh-issue-link { color: var(--text); text-decoration: none; flex: 1; line-height: 1.45; }
+  .gh-issue-link:hover { color: var(--accent); text-decoration: underline; }
+  .gh-issue-meta { color: var(--muted); flex-shrink: 0; font-size: 10px; }
 """
 
     # Sidebar
@@ -589,6 +612,116 @@ document.addEventListener('DOMContentLoaded', () => {
         .replace("__GLOBAL_TOTAL__", str(global_total))
     )
 
+    github_js = """
+(function () {
+  const GH_REPO = "__GH_REPO__";
+  const ISSUES_URL = "https://api.github.com/repos/" + GH_REPO + "/issues?state=all&per_page=100";
+
+  function parseLinkNext(linkHeader) {
+    if (!linkHeader) return null;
+    const parts = linkHeader.split(",");
+    for (const p of parts) {
+      const m = p.match(/<([^>]+)>;\\s*rel="next"/);
+      if (m) return m[1].trim();
+    }
+    return null;
+  }
+
+  async function fetchAllIssues() {
+    const all = [];
+    let url = ISSUES_URL;
+    for (let page = 0; page < 10 && url; page++) {
+      const res = await fetch(url, { headers: { Accept: "application/vnd.github+json" } });
+      if (res.status === 403) {
+        const j = await res.json().catch(() => ({}));
+        const msg = (j && j.message) || "rate limited";
+        throw new Error("GitHub API 403: " + msg);
+      }
+      if (!res.ok) throw new Error("GitHub API " + res.status);
+      const chunk = await res.json();
+      if (!Array.isArray(chunk)) throw new Error("bad JSON");
+      all.push(...chunk);
+      url = parseLinkNext(res.headers.get("Link"));
+    }
+    return all.filter((item) => !item.pull_request);
+  }
+
+  async function loadGitHubIssues() {
+    const statusEl = document.getElementById("github-status");
+    const listEl = document.getElementById("github-issues");
+    const barEl = document.getElementById("github-issue-bar");
+    const countsEl = document.getElementById("github-issue-counts");
+    if (!listEl) return;
+    if (statusEl) statusEl.textContent = "Loading issues…";
+    listEl.innerHTML = "";
+    try {
+      const data = await fetchAllIssues();
+      let open = 0,
+        closed = 0;
+      const groups = {};
+      data.forEach((issue) => {
+        if (issue.state === "open") open++;
+        else closed++;
+        const label =
+          issue.labels && issue.labels.length ? String(issue.labels[0].name) : "Uncategorized";
+        if (!groups[label]) groups[label] = [];
+        groups[label].push(issue);
+      });
+      const total = open + closed;
+      const pct = total ? Math.round((100 * closed) / total) : 0;
+      if (barEl) barEl.style.width = pct + "%";
+      if (countsEl)
+        countsEl.textContent = closed + " / " + total + " closed · " + open + " open";
+      if (statusEl) statusEl.textContent = total ? "" : "No issues in this repo yet.";
+      const sortedLabels = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+      sortedLabels.forEach((gname) => {
+        const wrap = document.createElement("div");
+        wrap.className = "gh-group";
+        const title = document.createElement("div");
+        title.className = "gh-group-title";
+        title.textContent = gname;
+        wrap.appendChild(title);
+        groups[gname]
+          .sort((a, b) => b.number - a.number)
+          .forEach((issue) => {
+            const row = document.createElement("div");
+            row.className = "gh-issue-row";
+            const cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.checked = issue.state === "closed";
+            cb.disabled = true;
+            cb.title = issue.state === "closed" ? "Closed" : "Open";
+            const link = document.createElement("a");
+            link.href = issue.html_url;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.className = "gh-issue-link";
+            link.textContent = issue.title;
+            const meta = document.createElement("span");
+            meta.className = "gh-issue-meta";
+            meta.textContent = "#" + issue.number;
+            row.appendChild(cb);
+            row.appendChild(link);
+            row.appendChild(meta);
+            wrap.appendChild(row);
+          });
+        listEl.appendChild(wrap);
+      });
+    } catch (e) {
+      if (statusEl)
+        statusEl.textContent =
+          "Could not load issues. Use HTTPS (GitHub Pages) or check rate limits / network. " +
+          String(e.message || e);
+      console.error(e);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", loadGitHubIssues);
+})();
+""".replace(
+        "__GH_REPO__", GITHUB_REPO.replace("\\", "\\\\").replace('"', '\\"')
+    )
+
     html_out = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -642,6 +775,17 @@ document.addEventListener('DOMContentLoaded', () => {
       <span id="bar-pct" style="min-width:36px">0%</span>
     </span>
   </div>
+  <section class="github-panel" id="github-sync" aria-labelledby="gh-heading">
+    <h3 id="gh-heading">GitHub project</h3>
+    <p class="gh-lead">Issues from <a href="https://github.com/{he(GITHUB_REPO)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent4)">{he(GITHUB_REPO)}</a>.
+    Open = unchecked · closed = checked (updates when you merge PRs that close issues). Requires this page to be served over <strong>HTTPS</strong> (e.g. GitHub Pages), not <code>file://</code>.</p>
+    <div class="gh-stats">
+      <span id="github-issue-counts" style="color:var(--muted)">—</span>
+      <div class="gh-bar-wrap"><div class="gh-bar-fill" id="github-issue-bar"></div></div>
+    </div>
+    <p id="github-status"></p>
+    <div id="github-issues"></div>
+  </section>
   <div class="workspace">
     <nav class="rail" aria-label="Modules">{rail_html}</nav>
     <main class="stage" id="main-stage">
@@ -655,6 +799,9 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 <script>
 {app_js}
+</script>
+<script>
+{github_js}
 </script>
 </body>
 </html>
