@@ -1,0 +1,11 @@
+# Binaries/Executables - specific compiled binary directories
+GFG/
+Nomoreinuse/
+Rand_Prog/
+
+# .vscode
+.vscode/
+
+# OS specific
+.DS_Store
+Thumbs.db
