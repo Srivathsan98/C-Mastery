@@ -449,7 +449,7 @@ def main():
         <div class="bar"><div class="fill" id="{mid}-bar"></div></div>
         <span id="{mid}-barpct" style="font-size:10px;color:var(--muted)">0%</span>
       </div>
-      <table class="q-table"><thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:80px">Type</th></tr></thead>
+      <table class="q-table"><thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:80px">Type</th><th style="width:90px">Issue</th></tr></thead>
       <tbody id="{mid}-tbody"></tbody></table>
     </div>
   </div>
@@ -460,6 +460,7 @@ def main():
 
     app_js = """
 const LS_KEY = "__LS_KEY__";
+const GH_REPO = "__GH_REPO__";
 const EXTRA_QUESTIONS = __EXTRA_JSON__;
 const MODULE_LAYER = __LAYER_JSON__;
 const MERGED_TOTALS = __TOTALS_JSON__;
@@ -498,13 +499,15 @@ function renderModule(mid) {
     if (!rows.length) return;
     const sec = document.createElement('tr');
     sec.className = 'q-section';
-    sec.innerHTML = '<td colspan="4"><span class="q-section-label">' + tier + '</span></td>';
+    sec.innerHTML = '<td colspan="5"><span class="q-section-label">' + tier + '</span></td>';
     tbody.appendChild(sec);
     rows.forEach(item => {
       const key = mid + '_u' + u;
+      const issueKey = mid + '_iss' + u;
       u++;
       qnum++;
       const isDone = saved[key] === true;
+      const issueNo = String(saved[issueKey] || '').trim();
       const ty = item.k === 'code' ? 'code' : 'theory';
       const tyClass = ty === 'code' ? 'type-code' : 'type-theory';
       const tr = document.createElement('tr');
@@ -512,11 +515,42 @@ function renderModule(mid) {
       tr.innerHTML = '<td><div class="q-check' + (isDone ? ' checked' : '') + '" onclick="toggleUnified(\\'' + key + '\\',\\'' + mid + '\\',this)"></div></td>' +
         '<td class="q-num">Q' + String(qnum).padStart(3, '0') + '</td>' +
         '<td class="q-text">' + escapeHtml(item.t) + '</td>' +
-        '<td><span class="q-type ' + tyClass + '">' + ty + '</span></td>';
+        '<td><span class="q-type ' + tyClass + '">' + ty + '</span></td>' +
+        '<td>' +
+          '<input class="gh-issue-input" ' +
+            'data-issuekey="' + issueKey + '" ' +
+            'data-mid="' + mid + '" ' +
+            'inputmode="numeric" pattern="[0-9]*" placeholder="#123" ' +
+            'value="' + escapeHtml(issueNo) + '" ' +
+            'style="width:64px;background:transparent;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:11px;font-family:inherit" ' +
+            'onchange="setIssueNo(this)" />' +
+          '<a class="gh-issue-jump" ' +
+            'href="' + (issueNo ? ('https://github.com/' + GH_REPO + '/issues/' + issueNo.replace(/[^0-9]/g, '')) : '#') + '" ' +
+            'target="_blank" rel="noopener noreferrer" ' +
+            'style="margin-left:8px;color:var(--accent4);font-size:11px;text-decoration:none;opacity:' + (issueNo ? '1' : '.35') + '"' +
+          '>open</a>' +
+        '</td>';
       tbody.appendChild(tr);
     });
   });
   updateModuleProgress(mid);
+}
+
+function setIssueNo(inputEl) {
+  const issueKey = inputEl.dataset.issuekey;
+  if (!issueKey) return;
+  let v = String(inputEl.value || '').trim();
+  v = v.replace(/^#/, '').replace(/[^0-9]/g, '').slice(0, 7);
+  if (v) saved[issueKey] = v;
+  else delete saved[issueKey];
+  localStorage.setItem(LS_KEY, JSON.stringify(saved));
+  inputEl.value = v ? ('#' + v) : '';
+  const td = inputEl.closest('td');
+  const a = td ? td.querySelector('a.gh-issue-jump') : null;
+  if (a) {
+    a.href = v ? ('https://github.com/' + GH_REPO + '/issues/' + v) : '#';
+    a.style.opacity = v ? '1' : '.35';
+  }
 }
 
 function toggleUnified(key, mid, el) {
@@ -606,6 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
 """
     app_js = (
         app_js.replace("__LS_KEY__", LS_KEY)
+        .replace("__GH_REPO__", GITHUB_REPO.replace("\\", "\\\\").replace('"', '\\"'))
         .replace("__EXTRA_JSON__", extra_json)
         .replace("__LAYER_JSON__", layer_json)
         .replace("__TOTALS_JSON__", totals_json)
@@ -656,10 +691,12 @@ document.addEventListener('DOMContentLoaded', () => {
     listEl.innerHTML = "";
     try {
       const data = await fetchAllIssues();
+      data.sort((a, b) => (b.number || 0) - (a.number || 0));
+      const limited = data.slice(0, 10);
       let open = 0,
         closed = 0;
       const groups = {};
-      data.forEach((issue) => {
+      limited.forEach((issue) => {
         if (issue.state === "open") open++;
         else closed++;
         const label =
